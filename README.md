@@ -103,4 +103,4 @@ https://www.kaggle.com/code/capblack222/agrisense-agent
 ## 💛 Personal Note  
 AgriSense is a small but meaningful step toward using technology for rural impact — inspired by the farmers in my village whose resilience shaped my journey.
 
-#### To read in-depth about it, please go to [Kaggle Writeup] (https://www.kaggle.com/competitions/agents-intensive-capstone-project/writeups/new-writeup-1764611812766)
+#### To read in-depth about it, please go to [Kaggle Writeup](https://www.kaggle.com/competitions/agents-intensive-capstone-project/writeups/new-writeup-1764611812766)
