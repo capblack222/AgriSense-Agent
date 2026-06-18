@@ -13,6 +13,7 @@ Run locally:
 Change BACKEND_URL to your deployed FastAPI URL when going live.
 """
 
+import re
 import streamlit as st
 import httpx
 
@@ -326,10 +327,14 @@ def show_chat():
         _VALID_STAGES    = {"Seedling", "Vegetative", "Flowering", "Harvest"}
         # Keep in sync with CROP_CONFIG in backend/rules.py
         _SUPPORTED_CROPS = {"Wheat", "Tomato", "Rice", "Maize", "Soybean", "Cotton", "Sugarcane"}
+        # Greetings and "confused" phrases — intercepted at every step so they
+        # never get treated as crop names or location names.
+        _GREETING_WORDS  = {"hi", "hello", "hey", "hiya", "howdy", "sup", "good morning",
+                            "good evening", "good afternoon", "namaste"}
+        _CONFUSED_WORDS  = {"idk", "i don't know", "i dont know", "not sure", "unsure",
+                            "dunno", "no idea", "hmm", "?", "help", "what", "huh"}
 
-        # ── EXIT KEYWORDS - must be checked FIRST, before any step logic ─────
-        # Previously this was an elif after step checks, making it unreachable:
-        # step is always "crop", "location", or "stage", so the elif never fired.
+        # ── EXIT KEYWORDS - checked first ────────────────────────────────────
         if cleaned.lower() in _EXIT_WORDS:
             reply = (
                 "You're all set for today! 🌾\n\n"
@@ -338,6 +343,31 @@ def show_chat():
             )
             st.session_state.step     = "crop"
             st.session_state.run_data = {}
+
+        # ── GREETINGS / CONFUSED — re-prompt for the current step ────────────
+        elif cleaned.lower() in _GREETING_WORDS or cleaned.lower() in _CONFUSED_WORDS:
+            crops_display = " · ".join(sorted(_SUPPORTED_CROPS))
+            if step == "crop":
+                reply = (
+                    "Hey there! 👋 I'm AgriSense, your farm assistant.\n\n"
+                    "**Which crop are you growing?**  \n"
+                    f"*{crops_display}*"
+                )
+            elif step == "location":
+                reply = (
+                    "No worries! Just type the name of the nearest town or city to your farm.  \n"
+                    "*Examples: Ranchi, Pune, Ahmedabad, New Delhi*"
+                )
+            else:  # stage
+                reply = (
+                    "Not sure which stage? Here's a quick guide:\n\n"
+                    "- **Seedling** — young plant, just sprouted\n"
+                    "- **Vegetative** — actively growing leaves and stems\n"
+                    "- **Flowering** — producing flowers or setting fruit\n"
+                    "- **Harvest** — crop is ready or nearly ready\n\n"
+                    "Which one fits your crop right now?"
+                )
+            # Step does not change — we re-ask the same question
 
         # ── Step 1: crop ─────────────────────────────────────────────────────
         elif step == "crop":
@@ -363,8 +393,15 @@ def show_chat():
         # ── Step 2: location ─────────────────────────────────────────────────
         elif step == "location":
             location = cleaned
-            if len(location) < 2:
-                reply = "Please enter a valid city or region name - for example: Ranchi, Pune, Ahmedabad."
+            # Allow letters, digits, spaces, hyphens, dots, apostrophes.
+            # Rejects pure numbers, symbols, or garbage like "!!!" or "1234".
+            _LOCATION_RE = re.compile(r"^[A-Za-z][A-Za-z0-9 .,'\-]{1,}$")
+            if len(location) < 2 or not _LOCATION_RE.match(location):
+                reply = (
+                    "Please enter a valid city or region name — letters only, no symbols.  \n"
+                    "*Examples: Ranchi, Pune, Ahmedabad, New Delhi*"
+                )
+                # Step stays at "location"
             else:
                 st.session_state.run_data["location"] = location
                 reply = (
@@ -409,6 +446,8 @@ def show_chat():
                     # Keep run_data so user can retry without re-entering crop/location
 
                 # ── Error: location not found or weather failure ───────────────
+                # main.py now raises HTTP 422 when weather.temp is None, so
+                # "detail" will be present and "llm_summary" will NOT be in res.
                 elif "detail" in res and "llm_summary" not in res:
                     detail = res["detail"]
                     if "not found" in detail.lower() or "location" in detail.lower():
@@ -417,13 +456,17 @@ def show_chat():
                             "Could you try a nearby larger city? For example, if you typed a small "
                             "village name, try the nearest district town instead."
                         )
+                        # Keep step at "location" - user only needs to re-enter the city,
+                        # not start over from crop selection.
+                        st.session_state.step = "location"
                     else:
                         reply = (
                             "Something went wrong fetching the weather data. "
                             "Please try again in a moment - these things sometimes fix themselves!"
                         )
-                    st.session_state.step     = "crop"
-                    st.session_state.run_data = {}
+                        # General failure: reset fully so the user starts fresh
+                        st.session_state.step     = "crop"
+                        st.session_state.run_data = {}
 
                 # ── Success ───────────────────────────────────────────────────
                 else:

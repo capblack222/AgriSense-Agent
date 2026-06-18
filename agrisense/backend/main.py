@@ -20,7 +20,7 @@ import os
 # Allow imports from the backend directory itself
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from auth    import register_user, login_user, get_current_user
@@ -125,6 +125,13 @@ async def run_agent(
         location = body.location,
         stage    = body.stage,
     )
+
+    # Weather fetch failed (location not found, network error, etc.)
+    # agent.py returns temp=None as the sentinel for this case.
+    # Raising 422 here means the frontend's existing "detail" error path fires
+    # instead of falling through silently to the success renderer.
+    if result["weather"].get("temp") is None:
+        raise HTTPException(status_code=422, detail=result["llm_summary"])
 
     return RunResponse(
         crop         = result["crop"],
