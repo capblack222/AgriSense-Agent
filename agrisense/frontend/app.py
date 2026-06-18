@@ -318,120 +318,154 @@ def show_chat():
             st.markdown(user_input)
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        step  = st.session_state.step
-        reply = ""
+        step    = st.session_state.step
+        cleaned = user_input.strip()
+        reply   = ""
 
-        # ── Step 1: crop ─────────────────────────────────────────────────────
-        if step == "crop":
-            crop = user_input.strip().title()
-            st.session_state.run_data["crop"] = crop
-            reply = (
-                f"Great choice — **{crop}**! 🌿\n\n"
-                "**Which city or region is your farm in?**  \n"
-                "*For example: Ranchi, Pune, Ahmedabad, Lucknow…*"
-            )
-            st.session_state.step = "location"
+        _EXIT_WORDS      = {"done", "no", "exit", "quit", "thanks", "thank you", "bye", "stop"}
+        _VALID_STAGES    = {"Seedling", "Vegetative", "Flowering", "Harvest"}
+        # Keep in sync with CROP_CONFIG in backend/rules.py
+        _SUPPORTED_CROPS = {"Wheat", "Tomato", "Rice", "Maize", "Soybean", "Cotton", "Sugarcane"}
 
-        # ── Step 2: location ─────────────────────────────────────────────────
-        elif step == "location":
-            location = user_input.strip()
-            st.session_state.run_data["location"] = location
-            reply = (
-                f"Got it — **{location}**. 📍\n\n"
-                "**What growth stage is your crop at right now?**  \n"
-                "*Choose one: Seedling · Vegetative · Flowering · Harvest*"
-            )
-            st.session_state.step = "stage"
-
-        # ── Step 3: stage → run agent ────────────────────────────────────────
-        elif step == "stage":
-            stage    = user_input.strip().title()
-            crop     = st.session_state.run_data.get("crop", "your crop")
-            location = st.session_state.run_data.get("location", "your location")
-
-            st.session_state.run_data["stage"] = stage
-
-            with st.chat_message("assistant", avatar="🌾"):
-                with st.spinner(f"Fetching today's weather for {location} and building your farm plan…"):
-                    res = api_post(
-                        "/agent/run",
-                        {"crop": crop, "location": location, "stage": stage},
-                        auth=True,
-                    )
-
-            # ── Error path ────────────────────────────────────────────────────
-            if "_friendly_error" in res:
-                reply = f"⚠️ {res['_friendly_error']}"
-
-            elif "detail" in res and "llm_summary" not in res:
-                # Location not found or weather API error
-                detail = res["detail"]
-                if "not found" in detail.lower() or "location" in detail.lower():
-                    reply = (
-                        f"Hmm, I couldn't find **{location}** in the weather database. 🗺️\n\n"
-                        "Could you try a nearby larger city? For example, if you typed a small "
-                        "village name, try the nearest district town instead."
-                    )
-                else:
-                    reply = (
-                        "Something went wrong fetching the weather data. "
-                        "Please try again in a moment — these things sometimes fix themselves!"
-                    )
-
-            else:
-                # ── Success path ──────────────────────────────────────────────
-                w       = res.get("weather", {})
-                actions = res.get("actions", [])
-
-                # Weather strip
-                temp_val = w.get("temp")
-                rain_val = w.get("precip")
-                hum_val  = w.get("humidity")
-
-                temp_icon = "🥵" if (temp_val or 0) > 35 else ("🌤️" if (temp_val or 0) > 25 else "🌡️")
-                rain_icon = "🌧️" if (rain_val or 0) > 1 else "☀️"
-                hum_icon  = "💧" if (hum_val or 0) > 75 else "🌬️"
-
-                weather_html = (
-                    f"<div class='weather-strip'>"
-                    f"<span>{temp_icon} <strong>{temp_val}°C</strong> Temperature</span>"
-                    f"<span>{rain_icon} <strong>{rain_val} mm</strong> Rain expected</span>"
-                    f"<span>{hum_icon} <strong>{hum_val}%</strong> Humidity</span>"
-                    f"</div>"
-                )
-
-                # Colour-coded action cards
-                cards_html = "\n".join(render_action_card(a) for a in actions)
-
-                # Gemini summary box
-                llm_text = res.get("llm_summary", "")
-
-                reply = (
-                    f"### Your farm plan for today 🗓️\n\n"
-                    f"**{crop}** · {location} · *{stage} stage*\n\n"
-                    f"{weather_html}\n\n"
-                    f"---\n\n"
-                    f"**What to do today:**\n\n"
-                    f"{cards_html}\n\n"
-                    f"---\n\n"
-                    f"**AgriSense says:**\n\n"
-                    f"> {llm_text}\n\n"
-                    f"---\n\n"
-                    f"Would you like a plan for **another crop or location**?  \n"
-                    f"Just tell me the crop name, or type `done` if you're all set. 👋"
-                )
-
-            # Reset for next round
-            st.session_state.step     = "crop"
-            st.session_state.run_data = {}
-
-        # ── User typed "done" ─────────────────────────────────────────────────
-        elif user_input.strip().lower() in {"done", "no", "exit", "quit", "thanks", "thank you"}:
+        # ── EXIT KEYWORDS — must be checked FIRST, before any step logic ─────
+        # Previously this was an elif after step checks, making it unreachable:
+        # step is always "crop", "location", or "stage", so the elif never fired.
+        if cleaned.lower() in _EXIT_WORDS:
             reply = (
                 "You're all set for today! 🌾\n\n"
                 "Come back tomorrow and I'll check the weather again and update your farm plan. "
                 "Wishing you a great harvest! 🌻"
             )
+            st.session_state.step     = "crop"
+            st.session_state.run_data = {}
+
+        # ── Step 1: crop ─────────────────────────────────────────────────────
+        elif step == "crop":
+            crop = cleaned.title()
+            crops_display = " · ".join(sorted(_SUPPORTED_CROPS))
+            if crop not in _SUPPORTED_CROPS:
+                reply = (
+                    f"I don't have data for **{crop}** yet. 🌱\n\n"
+                    f"I currently support these crops:\n\n"
+                    f"**{crops_display}**\n\n"
+                    "Please type one of the above."
+                )
+                # Step stays at "crop"
+            else:
+                st.session_state.run_data["crop"] = crop
+                reply = (
+                    f"Great — **{crop}**! 🌿\n\n"
+                    "**Which city or region is your farm in?**  \n"
+                    "*For example: Ranchi, Pune, Ahmedabad, Lucknow…*"
+                )
+                st.session_state.step = "location"
+
+        # ── Step 2: location ─────────────────────────────────────────────────
+        elif step == "location":
+            location = cleaned
+            if len(location) < 2:
+                reply = "Please enter a valid city or region name — for example: Ranchi, Pune, Ahmedabad."
+            else:
+                st.session_state.run_data["location"] = location
+                reply = (
+                    f"Got it — **{location}**. 📍\n\n"
+                    "**What growth stage is your crop at right now?**  \n"
+                    "*Choose one: Seedling · Vegetative · Flowering · Harvest*"
+                )
+                st.session_state.step = "stage"
+
+        # ── Step 3: stage → validate → run agent ─────────────────────────────
+        elif step == "stage":
+            stage = cleaned.title()
+
+            # Reject invalid stages — keep asking until we get a valid one
+            if stage not in _VALID_STAGES:
+                reply = (
+                    f"**{stage}** isn't a growth stage I recognise. 🌱\n\n"
+                    "Please choose one of:\n\n"
+                    "- **Seedling** — young plant, just germinated\n"
+                    "- **Vegetative** — actively growing leaves and stems\n"
+                    "- **Flowering** — producing flowers or setting fruit\n"
+                    "- **Harvest** — ready or near-ready to harvest"
+                )
+                # Step stays at "stage" — do not advance
+
+            else:
+                crop     = st.session_state.run_data.get("crop", "your crop")
+                location = st.session_state.run_data.get("location", "your location")
+                st.session_state.run_data["stage"] = stage
+
+                with st.chat_message("assistant", avatar="🌾"):
+                    with st.spinner(f"Fetching today's weather for {location} and building your farm plan…"):
+                        res = api_post(
+                            "/agent/run",
+                            {"crop": crop, "location": location, "stage": stage},
+                            auth=True,
+                        )
+
+                # ── Error: network / server unreachable ───────────────────────
+                if "_friendly_error" in res:
+                    reply = f"⚠️ {res['_friendly_error']}"
+                    # Keep run_data so user can retry without re-entering crop/location
+
+                # ── Error: location not found or weather failure ───────────────
+                elif "detail" in res and "llm_summary" not in res:
+                    detail = res["detail"]
+                    if "not found" in detail.lower() or "location" in detail.lower():
+                        reply = (
+                            f"Hmm, I couldn't find **{location}** in the weather database. 🗺️\n\n"
+                            "Could you try a nearby larger city? For example, if you typed a small "
+                            "village name, try the nearest district town instead."
+                        )
+                    else:
+                        reply = (
+                            "Something went wrong fetching the weather data. "
+                            "Please try again in a moment — these things sometimes fix themselves!"
+                        )
+                    st.session_state.step     = "crop"
+                    st.session_state.run_data = {}
+
+                # ── Success ───────────────────────────────────────────────────
+                else:
+                    w       = res.get("weather", {})
+                    actions = res.get("actions", [])
+
+                    temp_val = w.get("temp")
+                    rain_val = w.get("precip")
+                    hum_val  = w.get("humidity")
+
+                    temp_icon = "🥵" if (temp_val or 0) > 35 else ("🌤️" if (temp_val or 0) > 25 else "🌡️")
+                    rain_icon = "🌧️" if (rain_val or 0) > 1 else "☀️"
+                    hum_icon  = "💧" if (hum_val or 0) > 75 else "🌬️"
+
+                    weather_html = (
+                        f"<div class='weather-strip'>"
+                        f"<span>{temp_icon} <strong>{temp_val}°C</strong> Temperature</span>"
+                        f"<span>{rain_icon} <strong>{rain_val} mm</strong> Rain expected</span>"
+                        f"<span>{hum_icon} <strong>{hum_val}%</strong> Humidity</span>"
+                        f"</div>"
+                    )
+
+                    cards_html = "\n".join(render_action_card(a) for a in actions)
+                    llm_text   = res.get("llm_summary", "")
+
+                    reply = (
+                        f"### Your farm plan for today 🗓️\n\n"
+                        f"**{crop}** · {location} · *{stage} stage*\n\n"
+                        f"{weather_html}\n\n"
+                        f"---\n\n"
+                        f"**What to do today:**\n\n"
+                        f"{cards_html}\n\n"
+                        f"---\n\n"
+                        f"**AgriSense says:**\n\n"
+                        f"> {llm_text}\n\n"
+                        f"---\n\n"
+                        f"Would you like a plan for **another crop or location**?  \n"
+                        f"Just tell me the crop name, or type `done` if you're all set. 👋"
+                    )
+
+                    st.session_state.step     = "crop"
+                    st.session_state.run_data = {}
 
         else:
             reply = (

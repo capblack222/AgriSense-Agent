@@ -95,7 +95,26 @@ Do NOT use bullet points. Write in flowing prose. Be practical and encouraging.
 
 
 def _fallback(actions: list[str]) -> str:
-    """Plain-text fallback when Gemini is unavailable."""
+    """
+    Readable fallback when Gemini is unavailable (no API key or network error).
+    Strips stage-context prefixes (already shown as cards) and joins the
+    remaining action sentences into a clean paragraph.
+    """
     if not actions:
-        return "No recommendations available for current conditions."
-    return "Today's recommendations: " + " | ".join(actions)
+        return (
+            "Based on today's weather, no urgent actions are needed. "
+            "Monitor your crop and check back tomorrow."
+        )
+
+    # Drop the stage-context lines — they're already shown as colour-coded cards
+    clean = [
+        a.split("] ", 1)[-1] if (a.startswith("[") and "] " in a) else a
+        for a in actions
+        if not (a.startswith("[") and "Stage]" in a)
+    ]
+    if not clean:
+        clean = actions
+
+    # Ensure each sentence ends with a period, then join into one paragraph
+    sentences = [s.strip().rstrip(".") + "." for s in clean]
+    return " ".join(sentences)
