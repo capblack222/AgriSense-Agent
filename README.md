@@ -3,49 +3,65 @@
 *A personalized, explainable AI agent helping smallholder farmers make smarter daily choices.*
 
 ## 📌 Overview  
-AgriSense is my capstone project from the **Google x Kaggle AI Agents Intensive (2025)** - a 5-day deep dive into agentic system design, memory, tools, and multi-agent workflows.
+AgriSense is an AI-powered farm advisory platform that transforms real-time weather data into crop-specific, stage-aware farming recommendations. The project combines weather intelligence, agronomy-inspired decision rules, persistent farm memory, and AI reasoning to help farmers make more informed decisions about irrigation, fertilization, and crop management.
 
-This project holds deep meaning for me. Growing up, I watched farmers in my ancestral village in Kanpur struggle with unpredictable weather and limited access to timely advice. Those experiences shaped my long-term goal of building tech that empowers rural communities.
+The idea was originally developed as a capstone project during the **Google × Kaggle AI Agents Intensive (2025)**, where I explored agentic workflows, tool integration, and memory-driven AI systems. Since then, AgriSense has evolved into a production-ready, full-stack application built for scalability, data isolation, and low-latency performance.
 
-**AgriSense is designed for exactly that purpose.**  
-It converts raw weather forecasts into **clear, crop-specific, stage-aware farm recommendations** using AI agents.
+
+### 🛠️ Core Architectural Focus
+
+* **Agentic Weather Intelligence:** Combines real-time Open-Meteo API data mapping with rule-based agronomy heuristics to eliminate LLM hallucination in safety-critical agricultural guidance.
+* **State & Memory Management:** Utilizes a decoupled MongoDB architecture to maintain multi-turn, multi-seasonal farm history (crop growth stages, historical soil tracking) across stateless API sessions.
+* **Production-Grade Guardrails:** Enforces secure JWT-based user isolation, strict FastAPI Pydantic input validation, and asynchronous background worker processing to handle heavy external API payloads without blocking the user thread.
+* **Technology Stack:** FastAPI (Python), MongoDB, JWT Authentication, OpenWeather API, LangChain/Gemini API.
+
+
+### ❤️ The "Why" Behind AgriSense
+
+This project holds deep personal significance for me. Growing up, I watched farmers in my ancestral village in Kanpur navigate unpredictable weather patterns and limited access to timely, expert agricultural guidance. A single mistimed fertilization or irrigation cycle could decimate an entire season's yield. 
+
+Those experiences inspired my long-term goal of engineering accessible technology that bridges the gap between complex data and rural communities. AgriSense is a pragmatic step toward that vision—turning enterprise-level AI capabilities into actionable, real-world utility for the people who need it most.
 
 ## 🌟 Key Features
 
 ### 🤖 Interactive Farm Assistant
-- Asks intuitive questions  
-- Fetches real-time weather  
-- Generates daily personalized guidance  
-- Remembers previous sessions  
+- Conversational chat UI (Streamlit) with colour-coded recommendation cards
+- Validated input flow: crop → location → growth stage → personalised plan
+- Fetches real-time weather on every query
 
 ### 🌦️ Weather Intelligence
-Powered by the Open-Meteo API.
+Powered by the [Open-Meteo API](https://open-meteo.com/) — free, no key required.
 
-### 🧠 Context + Memory
-Stores crop, stage, past alerts, and weather snapshots.
+### 🧠 Persistent Memory
+Farm history stored in **MongoDB Atlas** per user account. Sessions survive restarts — your decisions are always there when you come back.
 
 ### 🪪 Transparent Rule Engine
-Agronomy-inspired decision logic for irrigation, heat stress, and pest risk.
+Crop-specific and **growth-stage-aware** agronomy logic for irrigation, heat stress, and fungal/pest risk. Thresholds shift based on whether your crop is at Seedling, Vegetative, Flowering, or Harvest stage.
 
-### 🧩 LLM Reasoning Layer
-Combines weather + rules + memory → simple, actionable advice.
+### 🧩 LLM Reasoning Layer ✅
+**Gemini 1.5 Flash** synthesises rule-engine output into a single, farmer-friendly paragraph. Falls back gracefully if the API is unavailable.
+
+### 🔐 Authentication
+JWT-based stateless auth (register + login). Passwords hashed with bcrypt + SHA-256 pre-hashing.
 
 ### 🧭 End-to-End Orchestration
-Handles workflow, user input, memory updates, and logging.
+FastAPI backend coordinates weather fetch → rule engine → Gemini synthesis → MongoDB persistence in a single async pipeline.
 
 ---
 
 ## 🏛️ Architecture
 ```
-User
-  ↓
-Orchestrator Agent
-  ↓
-Weather Tool → Rule Engine → Memory Store
-  ↓
-LLM Reasoner
-  ↓
-Output Layer (JSON + Natural Summary)
+Streamlit (frontend/app.py)
+  ↓ HTTP via httpx
+FastAPI (backend/main.py)
+  ├── auth.py        JWT register / login
+  └── agent.py       Orchestrator
+        ├── weather.py   Open-Meteo API → live forecast
+        ├── rules.py     Crop + stage rule engine
+        ├── gemini.py    Gemini 1.5 Flash → natural language summary
+        └── memory.py    MongoDB read/write (per-user history)
+
+MongoDB Atlas          ← persistent farm memory
 ```
 
 ---
@@ -57,12 +73,17 @@ Includes weather fetch, irrigation decisions, fungal/pest alerts, and history su
 ---
 
 ## 🔧 Tools & Technologies
-- Google AI Studio (Gemini)  
-- ADK (Agent Development Kit)  
-- Python  
-- Open-Meteo API  
-- JSON output logs  
-- Notebook-based memory system  
+
+| Layer | Technology |
+|---|---|
+| LLM | Gemini 1.5 Flash (`google-generativeai`) |
+| Backend | FastAPI + Uvicorn |
+| Frontend | Streamlit |
+| Database | MongoDB Atlas + Motor (async driver) |
+| Auth | python-jose (JWT) + bcrypt |
+| Weather | Open-Meteo API (free, no key) |
+| Container | Docker |
+| Language | Python 3.11+ |
 
 ---
 
@@ -86,11 +107,28 @@ Includes weather fetch, irrigation decisions, fungal/pest alerts, and history su
 
 ## 📁 Repository Structure
 ```
-notebooks/
-capstone/
-screenshots/
-README.md
+agrisense/
+  backend/
+    main.py         FastAPI routes + CORS + health check
+    agent.py        Orchestrator (coordinates all modules)
+    rules.py        Crop + stage-aware decision engine
+    weather.py      Open-Meteo API wrapper
+    gemini.py       Gemini LLM synthesis layer
+    memory.py       MongoDB-backed FarmMemory
+    auth.py         JWT auth + bcrypt password hashing
+    database.py     Motor async MongoDB client (singleton)
+    models.py       Pydantic request/response models
+  frontend/
+    app.py          Streamlit chat UI
+agrisense-agent-code-jupyter-nb.ipynb   original capstone notebook
+Dockerfile
+requirements.txt
+.env.example
 ```
+
+## ⚙️ Setup
+
+See **[docs/setup.md](docs/setup.md)** for full local and cloud deployment instructions.
 
 ---
 
