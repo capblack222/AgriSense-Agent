@@ -1,24 +1,24 @@
 """
-auth.py — Authentication: password hashing, JWT tokens, user management.
+auth.py - Authentication: password hashing, JWT tokens, user management.
 
 Three responsibilities:
-    1. Hash and verify passwords (bcrypt directly — no passlib wrapper)
+    1. Hash and verify passwords (bcrypt directly - no passlib wrapper)
     2. Create and decode JWT tokens (python-jose)
     3. FastAPI dependency that protects routes (get_current_user)
 
-Passwords are NEVER stored in plaintext — only bcrypt hashes.
+Passwords are NEVER stored in plaintext - only bcrypt hashes.
 Tokens are stateless: the server verifies the signature without hitting the DB.
 
 Why we use bcrypt directly instead of passlib:
     Passlib's CryptContext runs a detect_wrap_bug() check at initialisation
     time (module load). That check passes a >72-byte internal test string
     to bcrypt. On Python 3.14, bcrypt raises ValueError instead of silently
-    truncating — crashing the app before any user password is processed.
+    truncating - crashing the app before any user password is processed.
     Calling bcrypt directly sidesteps that initialisation routine entirely.
 
 Why we SHA-256 pre-hash before bcrypt:
     bcrypt has a hard 72-byte limit. SHA-256 output is always 32 bytes
-    (44 bytes as base64) — well under the limit for any password length.
+    (44 bytes as base64) - well under the limit for any password length.
     Same approach used by Django's BCryptSHA256PasswordHasher and 1Password.
 """
 
@@ -38,7 +38,7 @@ from database import users_collection
 load_dotenv()
 
 # ---------------------------------------------------------------------------
-# Config — loaded from .env
+# Config - loaded from .env
 # ---------------------------------------------------------------------------
 SECRET_KEY                  = os.getenv("SECRET_KEY", "change-me-in-production")
 ALGORITHM                   = os.getenv("ALGORITHM", "HS256")
@@ -58,7 +58,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 def _prehash(password: str) -> bytes:
     """
     SHA-256 pre-hash → returns bytes ready for bcrypt.
-    Output is always 44 bytes (base64 of 32-byte digest) — under the 72-byte limit.
+    Output is always 44 bytes (base64 of 32-byte digest) - under the 72-byte limit.
     """
     digest = hashlib.sha256(password.encode("utf-8")).digest()
     return base64.b64encode(digest)          # bytes, not str
@@ -82,7 +82,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 def create_access_token(email: str) -> str:
     """
     Create a signed JWT containing the user's email and an expiry time.
-    The token is self-contained — the server doesn't need to look anything
+    The token is self-contained - the server doesn't need to look anything
     up to verify it, just check the signature with SECRET_KEY.
     """
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -137,7 +137,7 @@ async def login_user(email: str, password: str) -> dict:
     """
     Verify credentials and return a JWT access token.
     Raises 401 if email not found or password is wrong.
-    We return the same error for both cases — never tell an attacker
+    We return the same error for both cases - never tell an attacker
     which one failed (that would let them enumerate valid emails).
     """
     user = await users_collection.find_one({"email": email})
@@ -152,7 +152,7 @@ async def login_user(email: str, password: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# FastAPI dependency — attach to any route that requires authentication
+# FastAPI dependency - attach to any route that requires authentication
 # ---------------------------------------------------------------------------
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> str:

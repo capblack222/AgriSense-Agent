@@ -1,5 +1,5 @@
 """
-main.py — FastAPI application entry point.
+main.py - FastAPI application entry point.
 
 Defines all HTTP routes and wires the backend together.
 Run locally with:
@@ -56,7 +56,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # Startup: create MongoDB indexes
 # Indexes make queries fast. Without them, MongoDB does a full collection scan.
-# We create them once at startup — MongoDB is idempotent about this (safe to
+# We create them once at startup - MongoDB is idempotent about this (safe to
 # call even if they already exist).
 # ---------------------------------------------------------------------------
 @app.on_event("startup")

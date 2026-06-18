@@ -1,5 +1,5 @@
 """
-models.py — Pydantic request and response models.
+models.py - Pydantic request and response models.
 
 These define the data contract for every API endpoint.
 FastAPI uses them to:
@@ -7,7 +7,7 @@ FastAPI uses them to:
     - Generate the interactive API docs at /docs
     - Serialize outgoing responses cleanly
 
-Keep request and response models separate — the internal DB shape
+Keep request and response models separate - the internal DB shape
 can change without breaking the public API contract.
 """
 

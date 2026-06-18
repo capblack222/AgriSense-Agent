@@ -1,4 +1,4 @@
-# AgriSense — Setup Guide
+# AgriSense - Setup Guide
 
 ## Prerequisites
 - Python 3.11+

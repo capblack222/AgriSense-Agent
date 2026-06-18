@@ -1,10 +1,10 @@
 """
-frontend/app.py — AgriSense Streamlit chat interface.
+frontend/app.py - AgriSense Streamlit chat interface.
 
 Farmer-friendly UI with:
   - Warm earthy colour scheme (set in .streamlit/config.toml)
   - Colour-coded recommendation cards (irrigation / heat / humidity / stage)
-  - Plain-language error messages — no stack traces shown to the user
+  - Plain-language error messages - no stack traces shown to the user
   - Persistent session history in the sidebar
 
 Run locally:
@@ -22,13 +22,13 @@ import httpx
 BACKEND_URL = "http://localhost:8000"
 
 st.set_page_config(
-    page_title = "AgriSense — Your Farm Assistant",
+    page_title = "AgriSense - Your Farm Assistant",
     page_icon  = "🌾",
     layout     = "centered",
 )
 
 # ---------------------------------------------------------------------------
-# Shared CSS — colour-coded recommendation cards
+# Shared CSS - colour-coded recommendation cards
 # Each card type maps to a keyword in the action text.
 # ---------------------------------------------------------------------------
 st.markdown("""
@@ -41,31 +41,31 @@ st.markdown("""
     font-size: 15px;
     line-height: 1.5;
 }
-/* Irrigation — calm blue */
+/* Irrigation - calm blue */
 .card-irrigation {
     background-color: #d0eaf8;
     border-left: 5px solid #2196f3;
     color: #0d2d45;
 }
-/* Heat alert — warm orange */
+/* Heat alert - warm orange */
 .card-heat {
     background-color: #fde8cc;
     border-left: 5px solid #e07b00;
     color: #3d1f00;
 }
-/* Humidity / fungal — muted purple */
+/* Humidity / fungal - muted purple */
 .card-humidity {
     background-color: #ede0f5;
     border-left: 5px solid #8e44ad;
     color: #2d0c40;
 }
-/* Stage note — soft green */
+/* Stage note - soft green */
 .card-stage {
     background-color: #d6edd8;
     border-left: 5px solid #40916c;
     color: #0d2e18;
 }
-/* General / fallback — warm grey */
+/* General / fallback - warm grey */
 .card-general {
     background-color: #f5f0e6;
     border-left: 5px solid #9e8a6a;
@@ -127,7 +127,7 @@ _CARD_ICONS = {
 def render_action_card(action: str) -> str:
     ctype = _card_type(action)
     icon  = _CARD_ICONS[ctype]
-    # Strip the "[Stage] " prefix if present — the card colour already signals stage
+    # Strip the "[Stage] " prefix if present - the card colour already signals stage
     text = action.replace("[Seedling Stage] ", "").replace("[Vegetative Stage] ", "") \
                  .replace("[Flowering Stage] ", "").replace("[Harvest Stage] ", "")
     return f'<div class="card card-{ctype}">{icon} {text}</div>'
@@ -177,13 +177,13 @@ def show_friendly_error(res: dict):
             "An account with this email already exists.":
                 "Looks like you already have an account with that email. Try logging in instead.",
             "Token is invalid or has expired. Please log in again.":
-                "Your session expired. Please log in again — it only takes a second.",
+                "Your session expired. Please log in again - it only takes a second.",
         }.get(detail, detail)
         st.error(f"⚠️ {friendly}")
 
 
 # ---------------------------------------------------------------------------
-# View 1 — Login / Register
+# View 1 - Login / Register
 # ---------------------------------------------------------------------------
 def show_auth():
     st.markdown(
@@ -192,7 +192,7 @@ def show_auth():
     )
     st.markdown(
         "<p style='text-align:center; color:#6b5b3e; font-size:17px;'>"
-        "Your daily AI-powered farm guide — personalised to your crop, location, and growth stage."
+        "Your daily AI-powered farm guide - personalised to your crop, location, and growth stage."
         "</p>",
         unsafe_allow_html=True,
     )
@@ -238,11 +238,11 @@ def show_auth():
                     show_friendly_error(res)
 
     st.divider()
-    st.caption("AgriSense — built for smallholder farmers. Inspired by the villages of Kanpur.")
+    st.caption("AgriSense - built for smallholder farmers. Inspired by the villages of Kanpur.")
 
 
 # ---------------------------------------------------------------------------
-# View 2 — Main chat interface
+# View 2 - Main chat interface
 # ---------------------------------------------------------------------------
 def show_chat():
 
@@ -261,7 +261,7 @@ def show_chat():
             elif "history" in history_res:
                 entries = history_res["history"]
                 if not entries:
-                    st.info("No decisions yet — run your first query to get started!")
+                    st.info("No decisions yet - run your first query to get started!")
                 else:
                     for entry in reversed(entries):
                         ws = entry.get("weather_snapshot", {})
@@ -269,9 +269,9 @@ def show_chat():
                         with st.expander(label):
                             st.caption(entry.get("timestamp", ""))
                             col1, col2, col3 = st.columns(3)
-                            col1.metric("Temp",     f"{ws.get('temp', '—')}°C")
-                            col2.metric("Rain",     f"{ws.get('precip', '—')} mm")
-                            col3.metric("Humidity", f"{ws.get('humidity', '—')}%")
+                            col1.metric("Temp",     f"{ws.get('temp', '-')}°C")
+                            col2.metric("Rain",     f"{ws.get('precip', '-')} mm")
+                            col3.metric("Humidity", f"{ws.get('humidity', '-')}%")
                             if entry.get("llm_summary"):
                                 st.info(entry["llm_summary"])
             else:
@@ -327,7 +327,7 @@ def show_chat():
         # Keep in sync with CROP_CONFIG in backend/rules.py
         _SUPPORTED_CROPS = {"Wheat", "Tomato", "Rice", "Maize", "Soybean", "Cotton", "Sugarcane"}
 
-        # ── EXIT KEYWORDS — must be checked FIRST, before any step logic ─────
+        # ── EXIT KEYWORDS - must be checked FIRST, before any step logic ─────
         # Previously this was an elif after step checks, making it unreachable:
         # step is always "crop", "location", or "stage", so the elif never fired.
         if cleaned.lower() in _EXIT_WORDS:
@@ -354,7 +354,7 @@ def show_chat():
             else:
                 st.session_state.run_data["crop"] = crop
                 reply = (
-                    f"Great — **{crop}**! 🌿\n\n"
+                    f"Great - **{crop}**! 🌿\n\n"
                     "**Which city or region is your farm in?**  \n"
                     "*For example: Ranchi, Pune, Ahmedabad, Lucknow…*"
                 )
@@ -364,11 +364,11 @@ def show_chat():
         elif step == "location":
             location = cleaned
             if len(location) < 2:
-                reply = "Please enter a valid city or region name — for example: Ranchi, Pune, Ahmedabad."
+                reply = "Please enter a valid city or region name - for example: Ranchi, Pune, Ahmedabad."
             else:
                 st.session_state.run_data["location"] = location
                 reply = (
-                    f"Got it — **{location}**. 📍\n\n"
+                    f"Got it - **{location}**. 📍\n\n"
                     "**What growth stage is your crop at right now?**  \n"
                     "*Choose one: Seedling · Vegetative · Flowering · Harvest*"
                 )
@@ -378,17 +378,17 @@ def show_chat():
         elif step == "stage":
             stage = cleaned.title()
 
-            # Reject invalid stages — keep asking until we get a valid one
+            # Reject invalid stages - keep asking until we get a valid one
             if stage not in _VALID_STAGES:
                 reply = (
                     f"**{stage}** isn't a growth stage I recognise. 🌱\n\n"
                     "Please choose one of:\n\n"
-                    "- **Seedling** — young plant, just germinated\n"
-                    "- **Vegetative** — actively growing leaves and stems\n"
-                    "- **Flowering** — producing flowers or setting fruit\n"
-                    "- **Harvest** — ready or near-ready to harvest"
+                    "- **Seedling** - young plant, just germinated\n"
+                    "- **Vegetative** - actively growing leaves and stems\n"
+                    "- **Flowering** - producing flowers or setting fruit\n"
+                    "- **Harvest** - ready or near-ready to harvest"
                 )
-                # Step stays at "stage" — do not advance
+                # Step stays at "stage" - do not advance
 
             else:
                 crop     = st.session_state.run_data.get("crop", "your crop")
@@ -420,7 +420,7 @@ def show_chat():
                     else:
                         reply = (
                             "Something went wrong fetching the weather data. "
-                            "Please try again in a moment — these things sometimes fix themselves!"
+                            "Please try again in a moment - these things sometimes fix themselves!"
                         )
                     st.session_state.step     = "crop"
                     st.session_state.run_data = {}
@@ -469,7 +469,7 @@ def show_chat():
 
         else:
             reply = (
-                "I didn't quite catch that. Let's start fresh — "
+                "I didn't quite catch that. Let's start fresh - "
                 "**which crop would you like guidance for?**"
             )
             st.session_state.step = "crop"

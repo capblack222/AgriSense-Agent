@@ -1,5 +1,5 @@
 """
-memory.py — MongoDB-backed persistent farm memory.
+memory.py - MongoDB-backed persistent farm memory.
 
 Replaces the in-memory FarmMemory class from the notebook.
 Each user's memory is one document in the 'memories' collection,

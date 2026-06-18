@@ -1,8 +1,8 @@
 """
-weather.py — Open-Meteo API wrapper.
+weather.py - Open-Meteo API wrapper.
 
 Single responsibility: given a city name, return structured weather data.
-No business logic lives here — that's rules.py's job.
+No business logic lives here - that's rules.py's job.
 
 If you ever swap weather providers, only this file changes.
 """

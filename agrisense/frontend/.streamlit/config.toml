@@ -1,10 +1,10 @@
 [theme]
 # Earthy, farmer-friendly palette
 # ----------------------------------
-# primaryColor     → forest green  — buttons, links, active elements
-# backgroundColor  → warm parchment — feels like aged paper, not a tech dashboard
-# secondaryBackgroundColor → slightly deeper parchment — sidebar, input fields
-# textColor        → deep soil brown — readable, warm, not harsh black
+# primaryColor     → forest green  - buttons, links, active elements
+# backgroundColor  → warm parchment - feels like aged paper, not a tech dashboard
+# secondaryBackgroundColor → slightly deeper parchment - sidebar, input fields
+# textColor        → deep soil brown - readable, warm, not harsh black
 
 primaryColor             = "#40916c"
 backgroundColor          = "#fefae0"

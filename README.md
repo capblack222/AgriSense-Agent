@@ -20,7 +20,7 @@ The idea was originally developed as a capstone project during the **Google × K
 
 This project holds deep personal significance for me. Growing up, I watched farmers in my ancestral village in Kanpur navigate unpredictable weather patterns and limited access to timely, expert agricultural guidance. A single mistimed fertilization or irrigation cycle could decimate an entire season's yield. 
 
-Those experiences inspired my long-term goal of engineering accessible technology that bridges the gap between complex data and rural communities. AgriSense is a pragmatic step toward that vision—turning enterprise-level AI capabilities into actionable, real-world utility for the people who need it most.
+Those experiences inspired my long-term goal of engineering accessible technology that bridges the gap between complex data and rural communities. AgriSense is a pragmatic step toward that vision-turning enterprise-level AI capabilities into actionable, real-world utility for the people who need it most.
 
 ## 🌟 Key Features
 
@@ -30,10 +30,10 @@ Those experiences inspired my long-term goal of engineering accessible technolog
 - Fetches real-time weather on every query
 
 ### 🌦️ Weather Intelligence
-Powered by the [Open-Meteo API](https://open-meteo.com/) — free, no key required.
+Powered by the [Open-Meteo API](https://open-meteo.com/) - free, no key required.
 
 ### 🧠 Persistent Memory
-Farm history stored in **MongoDB Atlas** per user account. Sessions survive restarts — your decisions are always there when you come back.
+Farm history stored in **MongoDB Atlas** per user account. Sessions survive restarts - your decisions are always there when you come back.
 
 ### 🪪 Transparent Rule Engine
 Crop-specific and **growth-stage-aware** agronomy logic for irrigation, heat stress, and fungal/pest risk. Thresholds shift based on whether your crop is at Seedling, Vegetative, Flowering, or Harvest stage.
@@ -139,6 +139,6 @@ https://www.kaggle.com/code/capblack222/agrisense-agent
 ---
 
 ## 💛 Personal Note  
-AgriSense is a small but meaningful step toward using technology for rural impact — inspired by the farmers in my village whose resilience shaped my journey.
+AgriSense is a small but meaningful step toward using technology for rural impact - inspired by the farmers in my village whose resilience shaped my journey.
 
 #### To read in-depth about it, please go to [Kaggle Writeup](https://www.kaggle.com/competitions/agents-intensive-capstone-project/writeups/new-writeup-1764611812766)

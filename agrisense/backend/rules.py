@@ -1,5 +1,5 @@
 """
-rules.py — Crop-specific agronomy decision engine.
+rules.py - Crop-specific agronomy decision engine.
 
 Pure functions only: no I/O, no database, no API calls.
 Input:  weather dict, crop name, growth stage
@@ -12,9 +12,9 @@ This design makes the logic easy to test in isolation and easy to extend
 # ---------------------------------------------------------------------------
 # Crop configuration
 # Each crop has three properties:
-#   heat_threshold  — °C above which heat stress warnings are issued
-#   humidity_risk   — % above which fungal/pest risk warnings are issued
-#   water_need      — irrigation urgency when no rain is forecast
+#   heat_threshold  - °C above which heat stress warnings are issued
+#   humidity_risk   - % above which fungal/pest risk warnings are issued
+#   water_need      - irrigation urgency when no rain is forecast
 # ---------------------------------------------------------------------------
 CROP_CONFIG: dict[str, dict] = {
     "Wheat": {
@@ -89,7 +89,7 @@ STAGE_MODIFIERS: dict[str, dict] = {
         "heat_threshold_delta": -3,   # heat during flowering causes pollen sterility
         "humidity_risk_delta": -5,    # fungal infection of flowers
         "stage_note": (
-            "Flowering stage: this is the most critical period — heat and water stress "
+            "Flowering stage: this is the most critical period - heat and water stress "
             "now directly reduce yield. Prioritise irrigation and shade."
         ),
     },
@@ -98,7 +98,7 @@ STAGE_MODIFIERS: dict[str, dict] = {
         "humidity_risk_delta": -10,   # high humidity causes mold/rot in grain
         "stage_note": (
             "Harvest stage: reduce irrigation to allow the crop to dry. "
-            "Watch humidity closely — mold can destroy a ready harvest quickly."
+            "Watch humidity closely - mold can destroy a ready harvest quickly."
         ),
     },
 }
@@ -114,7 +114,7 @@ def decide_actions(weather: dict, crop: str, stage: str | None = None) -> dict:
     Apply agronomy rules to weather data and return recommended actions.
 
     Args:
-        weather: dict returned by fetch_weather() — must contain 'hourly' key
+        weather: dict returned by fetch_weather() - must contain 'hourly' key
         crop:    crop name (matched against CROP_CONFIG; falls back to defaults)
         stage:   growth stage string (matched against STAGE_MODIFIERS)
 
@@ -165,7 +165,7 @@ def decide_actions(weather: dict, crop: str, stage: str | None = None) -> dict:
     if precip < 1:
         if water_need == "very-high":
             actions.append(
-                "Irrigate generously today — no rain expected and this crop has very high water demand."
+                "Irrigate generously today - no rain expected and this crop has very high water demand."
             )
             explanations.append(
                 f"Precipitation forecast is {precip} mm. {crop} requires intensive irrigation "
@@ -173,7 +173,7 @@ def decide_actions(weather: dict, crop: str, stage: str | None = None) -> dict:
             )
         elif water_need == "high":
             actions.append(
-                "Irrigate today — no rain expected and this crop needs consistent moisture."
+                "Irrigate today - no rain expected and this crop needs consistent moisture."
             )
             explanations.append(
                 f"Precipitation forecast is {precip} mm. {crop} has high water demand "
@@ -181,14 +181,14 @@ def decide_actions(weather: dict, crop: str, stage: str | None = None) -> dict:
             )
         else:
             actions.append(
-                "Irrigate lightly — no significant rain expected."
+                "Irrigate lightly - no significant rain expected."
             )
             explanations.append(
                 f"Precipitation forecast is {precip} mm. {crop} has moderate water needs; "
                 "a light irrigation is sufficient."
             )
     else:
-        actions.append("Skip irrigation today — rain is expected. Conserve water.")
+        actions.append("Skip irrigation today - rain is expected. Conserve water.")
         explanations.append(
             f"Precipitation forecast is {precip} mm, which is sufficient. "
             "Irrigating on top of expected rain risks waterlogging."
@@ -205,7 +205,7 @@ def decide_actions(weather: dict, crop: str, stage: str | None = None) -> dict:
         )
     else:
         actions.append(
-            f"Temperature is safe ({temp}°C) — no heat protection needed today."
+            f"Temperature is safe ({temp}°C) - no heat protection needed today."
         )
         explanations.append(
             f"Temperature {temp}°C is within the safe range (threshold: {heat_th}°C) "
@@ -215,7 +215,7 @@ def decide_actions(weather: dict, crop: str, stage: str | None = None) -> dict:
     # ── Rule 3: Humidity / fungal risk ───────────────────────────────────────
     if humidity > humid_th:
         actions.append(
-            f"High humidity ({humidity}%): fungal and pest risk is elevated — "
+            f"High humidity ({humidity}%): fungal and pest risk is elevated - "
             "improve airflow and consider a preventive spray."
         )
         explanations.append(
@@ -224,7 +224,7 @@ def decide_actions(weather: dict, crop: str, stage: str | None = None) -> dict:
         )
     else:
         actions.append(
-            f"Humidity is normal ({humidity}%) — no fungal or pest alert today."
+            f"Humidity is normal ({humidity}%) - no fungal or pest alert today."
         )
         explanations.append(
             f"Humidity {humidity}% is below the risk threshold ({humid_th}%) "

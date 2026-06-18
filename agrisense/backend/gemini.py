@@ -1,11 +1,11 @@
 """
-gemini.py — Gemini LLM reasoning layer.
+gemini.py - Gemini LLM reasoning layer.
 
 Takes the rule engine's structured output (actions + explanations + weather)
 and synthesises it into a single, clear, farmer-friendly paragraph.
 
 The rule engine is the source of truth for WHAT to do.
-Gemini's job is to make it readable and human — not to invent new advice.
+Gemini's job is to make it readable and human - not to invent new advice.
 
 If the Gemini call fails for any reason, we gracefully fall back to
 joining the rule engine actions into plain text so the app never breaks.
@@ -38,17 +38,17 @@ def synthesise_advice(
     Call Gemini to synthesise the rule engine output into natural language.
 
     Args:
-        crop, location, stage  — farm context
-        weather_summary        — { temp, precip, humidity }
-        actions                — list of imperative recommendations from rules.py
-        explanations           — one-sentence reasoning per action
+        crop, location, stage  - farm context
+        weather_summary        - { temp, precip, humidity }
+        actions                - list of imperative recommendations from rules.py
+        explanations           - one-sentence reasoning per action
 
     Returns:
         A single plain-language paragraph the farmer can read and act on.
         Falls back to a joined action list if the API call fails.
     """
     if not _API_KEY:
-        # No API key configured — return a clean fallback without crashing
+        # No API key configured - return a clean fallback without crashing
         return _fallback(actions)
 
     # ── Build the prompt ─────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ Write a single, warm, clear paragraph (4–6 sentences) that:
 1. Acknowledges today's weather conditions briefly
 2. Explains the most important actions the farmer should take today
 3. Mentions why the growth stage matters for these decisions
-4. Uses simple, plain language — the audience may not be technically trained
+4. Uses simple, plain language - the audience may not be technically trained
 
 Important: Do NOT invent advice beyond what the rule engine has provided above.
 Do NOT use bullet points. Write in flowing prose. Be practical and encouraging.
@@ -106,7 +106,7 @@ def _fallback(actions: list[str]) -> str:
             "Monitor your crop and check back tomorrow."
         )
 
-    # Drop the stage-context lines — they're already shown as colour-coded cards
+    # Drop the stage-context lines - they're already shown as colour-coded cards
     clean = [
         a.split("] ", 1)[-1] if (a.startswith("[") and "] " in a) else a
         for a in actions
