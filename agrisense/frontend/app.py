@@ -1,15 +1,16 @@
 """
 frontend/app.py — AgriSense Streamlit chat interface.
 
-Two views:
-    1. Login / Register  — collects credentials, stores JWT in session state
-    2. Chat interface    — collects crop/location/stage, calls FastAPI, shows advice
+Farmer-friendly UI with:
+  - Warm earthy colour scheme (set in .streamlit/config.toml)
+  - Colour-coded recommendation cards (irrigation / heat / humidity / stage)
+  - Plain-language error messages — no stack traces shown to the user
+  - Persistent session history in the sidebar
 
-Run locally with:
+Run locally:
     streamlit run app.py
 
-The BACKEND_URL below should match where your FastAPI server is running.
-Change it to your deployed URL when going live.
+Change BACKEND_URL to your deployed FastAPI URL when going live.
 """
 
 import streamlit as st
@@ -18,28 +19,122 @@ import httpx
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-BACKEND_URL = "http://localhost:8000"   # change to deployed URL in production
+BACKEND_URL = "http://localhost:8000"
 
 st.set_page_config(
-    page_title = "AgriSense 🌾",
+    page_title = "AgriSense — Your Farm Assistant",
     page_icon  = "🌾",
     layout     = "centered",
 )
 
 # ---------------------------------------------------------------------------
+# Shared CSS — colour-coded recommendation cards
+# Each card type maps to a keyword in the action text.
+# ---------------------------------------------------------------------------
+st.markdown("""
+<style>
+/* Shared card base */
+.card {
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 6px 0;
+    font-size: 15px;
+    line-height: 1.5;
+}
+/* Irrigation — calm blue */
+.card-irrigation {
+    background-color: #d0eaf8;
+    border-left: 5px solid #2196f3;
+    color: #0d2d45;
+}
+/* Heat alert — warm orange */
+.card-heat {
+    background-color: #fde8cc;
+    border-left: 5px solid #e07b00;
+    color: #3d1f00;
+}
+/* Humidity / fungal — muted purple */
+.card-humidity {
+    background-color: #ede0f5;
+    border-left: 5px solid #8e44ad;
+    color: #2d0c40;
+}
+/* Stage note — soft green */
+.card-stage {
+    background-color: #d6edd8;
+    border-left: 5px solid #40916c;
+    color: #0d2e18;
+}
+/* General / fallback — warm grey */
+.card-general {
+    background-color: #f5f0e6;
+    border-left: 5px solid #9e8a6a;
+    color: #2a2010;
+}
+/* Weather strip */
+.weather-strip {
+    background-color: #e8f5e9;
+    border-radius: 10px;
+    padding: 10px 16px;
+    display: flex;
+    gap: 24px;
+    font-size: 15px;
+    color: #1b3a2a;
+    margin-bottom: 8px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
 # Session state initialisation
-# Streamlit re-runs the entire script on every interaction.
-# session_state persists values across those reruns.
 # ---------------------------------------------------------------------------
-if "token"      not in st.session_state: st.session_state.token      = None
-if "user_email" not in st.session_state: st.session_state.user_email = None
-if "messages"   not in st.session_state: st.session_state.messages   = []
-if "step"       not in st.session_state: st.session_state.step       = "crop"
-if "run_data"   not in st.session_state: st.session_state.run_data   = {}
+defaults = {
+    "token":      None,
+    "user_email": None,
+    "messages":   [],
+    "step":       "crop",
+    "run_data":   {},
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
 
 # ---------------------------------------------------------------------------
-# Helper: authenticated API call
+# Helper: classify an action string into a card type
+# ---------------------------------------------------------------------------
+def _card_type(action: str) -> str:
+    lower = action.lower()
+    if "irrigat" in lower or "water" in lower or "rain" in lower:
+        return "irrigation"
+    if "heat" in lower or "temperature" in lower or "shade" in lower or "mulch" in lower:
+        return "heat"
+    if "humid" in lower or "fungal" in lower or "pest" in lower or "airflow" in lower:
+        return "humidity"
+    if "stage" in lower or "seedling" in lower or "flowering" in lower or "harvest" in lower or "vegetative" in lower:
+        return "stage"
+    return "general"
+
+_CARD_ICONS = {
+    "irrigation": "💧",
+    "heat":       "🌡️",
+    "humidity":   "🍄",
+    "stage":      "🌱",
+    "general":    "📌",
+}
+
+def render_action_card(action: str) -> str:
+    ctype = _card_type(action)
+    icon  = _CARD_ICONS[ctype]
+    # Strip the "[Stage] " prefix if present — the card colour already signals stage
+    text = action.replace("[Seedling Stage] ", "").replace("[Vegetative Stage] ", "") \
+                 .replace("[Flowering Stage] ", "").replace("[Harvest Stage] ", "")
+    return f'<div class="card card-{ctype}">{icon} {text}</div>'
+
+
+# ---------------------------------------------------------------------------
+# Helper: API calls with friendly error handling
 # ---------------------------------------------------------------------------
 def api_post(endpoint: str, payload: dict, auth: bool = False) -> dict:
     headers = {}
@@ -48,201 +143,310 @@ def api_post(endpoint: str, payload: dict, auth: bool = False) -> dict:
     try:
         r = httpx.post(f"{BACKEND_URL}{endpoint}", json=payload, headers=headers, timeout=30)
         return r.json()
+    except httpx.ConnectError:
+        return {"_friendly_error": "We couldn't reach the AgriSense server. Is it running?"}
+    except httpx.TimeoutException:
+        return {"_friendly_error": "The request took too long. Please try again in a moment."}
     except Exception as e:
-        return {"error": str(e)}
+        return {"_friendly_error": f"Something unexpected happened: {e}"}
+
 
 def api_get(endpoint: str, params: dict = {}) -> dict:
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
     try:
         r = httpx.get(f"{BACKEND_URL}{endpoint}", params=params, headers=headers, timeout=30)
         return r.json()
+    except httpx.ConnectError:
+        return {"_friendly_error": "Couldn't reach the server to load your history."}
+    except httpx.TimeoutException:
+        return {"_friendly_error": "Loading your history took too long. Try again."}
     except Exception as e:
-        return {"error": str(e)}
+        return {"_friendly_error": str(e)}
+
+
+def show_friendly_error(res: dict):
+    """Show a plain-language error. Never expose raw API detail to the user."""
+    if "_friendly_error" in res:
+        st.error(f"⚠️ {res['_friendly_error']}")
+    elif "detail" in res:
+        detail = res["detail"]
+        # Map common API errors to plain language
+        friendly = {
+            "Incorrect email or password.":
+                "Hmm, that email or password doesn't look right. Want to try again?",
+            "An account with this email already exists.":
+                "Looks like you already have an account with that email. Try logging in instead.",
+            "Token is invalid or has expired. Please log in again.":
+                "Your session expired. Please log in again — it only takes a second.",
+        }.get(detail, detail)
+        st.error(f"⚠️ {friendly}")
 
 
 # ---------------------------------------------------------------------------
-# View 1: Login / Register
+# View 1 — Login / Register
 # ---------------------------------------------------------------------------
 def show_auth():
-    st.title("🌾 AgriSense")
-    st.caption("AI-powered daily farm guidance for smallholder farmers")
+    st.markdown(
+        "<h1 style='text-align:center; color:#40916c;'>🌾 AgriSense</h1>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<p style='text-align:center; color:#6b5b3e; font-size:17px;'>"
+        "Your daily AI-powered farm guide — personalised to your crop, location, and growth stage."
+        "</p>",
+        unsafe_allow_html=True,
+    )
     st.divider()
 
-    tab_login, tab_register = st.tabs(["Log In", "Create Account"])
+    tab_login, tab_register = st.tabs(["🔑  Log In", "🌱  Create Account"])
 
     with tab_login:
-        email    = st.text_input("Email",    key="login_email")
-        password = st.text_input("Password", type="password", key="login_password")
-        if st.button("Log In", use_container_width=True):
-            if email and password:
-                res = api_post("/auth/login", {"email": email, "password": password})
+        st.markdown("##### Welcome back! Enter your details below.")
+        email    = st.text_input("Email address", key="login_email",    placeholder="you@example.com")
+        password = st.text_input("Password",       key="login_password", placeholder="Your password", type="password")
+
+        if st.button("Log In  →", use_container_width=True, type="primary"):
+            if not email or not password:
+                st.warning("Please fill in both your email and password.")
+            else:
+                with st.spinner("Logging you in…"):
+                    res = api_post("/auth/login", {"email": email, "password": password})
                 if "access_token" in res:
                     st.session_state.token      = res["access_token"]
                     st.session_state.user_email = email
-                    st.success("Logged in!")
+                    st.success("Welcome back! Loading your dashboard…")
                     st.rerun()
                 else:
-                    st.error(res.get("detail", "Login failed. Check your credentials."))
-            else:
-                st.warning("Please enter your email and password.")
+                    show_friendly_error(res)
 
     with tab_register:
-        email    = st.text_input("Email",           key="reg_email")
-        password = st.text_input("Password (min 6)", type="password", key="reg_password")
-        if st.button("Create Account", use_container_width=True):
-            if email and password:
-                res = api_post("/auth/register", {"email": email, "password": password})
-                if "message" in res:
-                    st.success("Account created! You can now log in.")
-                else:
-                    st.error(res.get("detail", "Registration failed."))
+        st.markdown("##### Create a free account to get started.")
+        email    = st.text_input("Email address",      key="reg_email",    placeholder="you@example.com")
+        password = st.text_input("Choose a password",  key="reg_password", placeholder="At least 6 characters", type="password")
+
+        if st.button("Create My Account  →", use_container_width=True, type="primary"):
+            if not email or not password:
+                st.warning("Please fill in both fields to create your account.")
+            elif len(password) < 6:
+                st.warning("Your password needs to be at least 6 characters long.")
             else:
-                st.warning("Please fill in both fields.")
+                with st.spinner("Setting up your account…"):
+                    res = api_post("/auth/register", {"email": email, "password": password})
+                if "message" in res:
+                    st.success("Account created! Switch to the Log In tab to get started.")
+                else:
+                    show_friendly_error(res)
+
+    st.divider()
+    st.caption("AgriSense — built for smallholder farmers. Inspired by the villages of Kanpur.")
 
 
 # ---------------------------------------------------------------------------
-# View 2: Chat interface
+# View 2 — Main chat interface
 # ---------------------------------------------------------------------------
 def show_chat():
+
     # ── Sidebar ──────────────────────────────────────────────────────────────
     with st.sidebar:
-        st.markdown(f"**Logged in as:** {st.session_state.user_email}")
+        st.markdown(f"**Logged in as**  \n{st.session_state.user_email}")
         st.divider()
+        st.markdown("#### 📋 Recent Decisions")
 
-        # History panel
-        if st.button("📋 Show my recent decisions"):
-            history_res = api_get("/agent/history", {"n": 5})
-            if "history" in history_res:
+        if st.button("Load my history", use_container_width=True):
+            with st.spinner("Fetching your recent decisions…"):
+                history_res = api_get("/agent/history", {"n": 5})
+
+            if "_friendly_error" in history_res:
+                st.error(history_res["_friendly_error"])
+            elif "history" in history_res:
                 entries = history_res["history"]
-                if entries:
+                if not entries:
+                    st.info("No decisions yet — run your first query to get started!")
+                else:
                     for entry in reversed(entries):
-                        with st.expander(f"🌾 {entry['crop']} @ {entry['location']} — {entry['timestamp']}"):
-                            ws = entry.get("weather_snapshot", {})
-                            st.markdown(
-                                f"**Stage:** {entry.get('stage', '—')}  \n"
-                                f"**Temp:** {ws.get('temp')}°C  |  "
-                                f"**Rain:** {ws.get('precip')} mm  |  "
-                                f"**Humidity:** {ws.get('humidity')}%"
-                            )
+                        ws = entry.get("weather_snapshot", {})
+                        label = f"🌾 {entry['crop']} @ {entry['location']}"
+                        with st.expander(label):
+                            st.caption(entry.get("timestamp", ""))
+                            col1, col2, col3 = st.columns(3)
+                            col1.metric("Temp",     f"{ws.get('temp', '—')}°C")
+                            col2.metric("Rain",     f"{ws.get('precip', '—')} mm")
+                            col3.metric("Humidity", f"{ws.get('humidity', '—')}%")
                             if entry.get("llm_summary"):
                                 st.info(entry["llm_summary"])
-                else:
-                    st.info("No history yet — run a query first.")
             else:
-                st.error("Could not load history.")
+                st.error("Couldn't load your history right now. Try again in a moment.")
 
         st.divider()
-        if st.button("🚪 Log Out"):
-            for key in ["token", "user_email", "messages", "step", "run_data"]:
-                st.session_state[key] = None if key == "token" else (
-                    [] if key == "messages" else ({} if key == "run_data" else "crop")
-                )
+        if st.button("🚪  Log Out", use_container_width=True):
+            for k, v in defaults.items():
+                st.session_state[k] = v
             st.rerun()
 
-    # ── Main chat area ───────────────────────────────────────────────────────
-    st.title("🌾 AgriSense")
-    st.caption("Your daily AI-powered farm assistant")
+    # ── Main area ─────────────────────────────────────────────────────────────
+    st.markdown(
+        "<h2 style='color:#40916c;'>🌾 AgriSense</h2>",
+        unsafe_allow_html=True,
+    )
+    st.caption("Ask me about any crop and I'll fetch today's weather and give you a personalised farm plan.")
 
     # Replay existing messages
     for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+        with st.chat_message(msg["role"], avatar="🌾" if msg["role"] == "assistant" else "👤"):
+            st.markdown(msg["content"], unsafe_allow_html=True)
 
-    # Start the conversation if it's fresh
+    # Opening greeting on first load
     if not st.session_state.messages:
         greeting = (
-            "Hello! I'm AgriSense, your farm assistant. 🌱\n\n"
-            "I'll check today's weather and give you personalised guidance "
-            "based on your crop and growth stage.\n\n"
-            "**Which crop would you like guidance for?**  \n"
-            "*(e.g. Wheat, Tomato, Rice, Maize, Soybean, Cotton, Sugarcane)*"
+            "Hello! I'm **AgriSense**, your personal farm assistant. 🌱\n\n"
+            "Tell me your crop and location and I'll check today's weather "
+            "to give you a tailored daily farm plan.\n\n"
+            "**Which crop would you like guidance for today?**  \n"
+            "*Examples: Wheat, Tomato, Rice, Maize, Soybean, Cotton, Sugarcane*"
         )
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar="🌾"):
             st.markdown(greeting)
         st.session_state.messages.append({"role": "assistant", "content": greeting})
         st.session_state.step = "crop"
 
-    # ── Conversational input loop ─────────────────────────────────────────────
-    user_input = st.chat_input("Type your answer here...")
+    # ── Conversational input ─────────────────────────────────────────────────
+    user_input = st.chat_input("Type your answer here…")
 
     if user_input:
-        # Show user message
-        with st.chat_message("user"):
+        # Show user's message
+        with st.chat_message("user", avatar="👤"):
             st.markdown(user_input)
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        step = st.session_state.step
+        step  = st.session_state.step
+        reply = ""
 
-        # Step 1: collect crop
+        # ── Step 1: crop ─────────────────────────────────────────────────────
         if step == "crop":
-            st.session_state.run_data["crop"] = user_input.strip().title()
+            crop = user_input.strip().title()
+            st.session_state.run_data["crop"] = crop
             reply = (
-                f"Great — **{st.session_state.run_data['crop']}**! 🌾\n\n"
-                "**Which city or region is your farm located in?**"
+                f"Great choice — **{crop}**! 🌿\n\n"
+                "**Which city or region is your farm in?**  \n"
+                "*For example: Ranchi, Pune, Ahmedabad, Lucknow…*"
             )
             st.session_state.step = "location"
 
-        # Step 2: collect location
+        # ── Step 2: location ─────────────────────────────────────────────────
         elif step == "location":
-            st.session_state.run_data["location"] = user_input.strip()
+            location = user_input.strip()
+            st.session_state.run_data["location"] = location
             reply = (
-                f"Got it — **{st.session_state.run_data['location']}**.\n\n"
-                "**What is the current growth stage?**  \n"
-                "*(Seedling / Vegetative / Flowering / Harvest)*"
+                f"Got it — **{location}**. 📍\n\n"
+                "**What growth stage is your crop at right now?**  \n"
+                "*Choose one: Seedling · Vegetative · Flowering · Harvest*"
             )
             st.session_state.step = "stage"
 
-        # Step 3: collect stage → run agent
+        # ── Step 3: stage → run agent ────────────────────────────────────────
         elif step == "stage":
-            st.session_state.run_data["stage"] = user_input.strip().title()
+            stage    = user_input.strip().title()
+            crop     = st.session_state.run_data.get("crop", "your crop")
+            location = st.session_state.run_data.get("location", "your location")
 
-            with st.chat_message("assistant"):
-                with st.spinner("Checking the weather and preparing your farm plan..."):
+            st.session_state.run_data["stage"] = stage
+
+            with st.chat_message("assistant", avatar="🌾"):
+                with st.spinner(f"Fetching today's weather for {location} and building your farm plan…"):
                     res = api_post(
                         "/agent/run",
-                        {
-                            "crop":     st.session_state.run_data["crop"],
-                            "location": st.session_state.run_data["location"],
-                            "stage":    st.session_state.run_data["stage"],
-                        },
+                        {"crop": crop, "location": location, "stage": stage},
                         auth=True,
                     )
 
-            if "error" in res and "llm_summary" not in res:
-                reply = f"⚠️ Something went wrong: {res.get('error', 'Unknown error')}"
+            # ── Error path ────────────────────────────────────────────────────
+            if "_friendly_error" in res:
+                reply = f"⚠️ {res['_friendly_error']}"
+
+            elif "detail" in res and "llm_summary" not in res:
+                # Location not found or weather API error
+                detail = res["detail"]
+                if "not found" in detail.lower() or "location" in detail.lower():
+                    reply = (
+                        f"Hmm, I couldn't find **{location}** in the weather database. 🗺️\n\n"
+                        "Could you try a nearby larger city? For example, if you typed a small "
+                        "village name, try the nearest district town instead."
+                    )
+                else:
+                    reply = (
+                        "Something went wrong fetching the weather data. "
+                        "Please try again in a moment — these things sometimes fix themselves!"
+                    )
+
             else:
-                w = res.get("weather", {})
-                actions_md = "\n".join(f"{i+1}. {a}" for i, a in enumerate(res.get("actions", [])))
-                reply = (
-                    f"### 🌾 Farm Plan — {res['crop']} @ {res['location']} ({res['stage']} stage)\n\n"
-                    f"**Current weather:**  \n"
-                    f"🌡️ {w.get('temp')}°C  |  🌧️ {w.get('precip')} mm rain  |  💧 {w.get('humidity')}% humidity\n\n"
-                    f"---\n\n"
-                    f"**Today's recommendations:**\n\n{actions_md}\n\n"
-                    f"---\n\n"
-                    f"**AgriSense summary:**\n\n{res.get('llm_summary', '')}\n\n"
-                    f"---\n\n"
-                    f"Would you like guidance for **another crop**? Just tell me the crop name, "
-                    f"or type `done` to finish."
+                # ── Success path ──────────────────────────────────────────────
+                w       = res.get("weather", {})
+                actions = res.get("actions", [])
+
+                # Weather strip
+                temp_val = w.get("temp")
+                rain_val = w.get("precip")
+                hum_val  = w.get("humidity")
+
+                temp_icon = "🥵" if (temp_val or 0) > 35 else ("🌤️" if (temp_val or 0) > 25 else "🌡️")
+                rain_icon = "🌧️" if (rain_val or 0) > 1 else "☀️"
+                hum_icon  = "💧" if (hum_val or 0) > 75 else "🌬️"
+
+                weather_html = (
+                    f"<div class='weather-strip'>"
+                    f"<span>{temp_icon} <strong>{temp_val}°C</strong> Temperature</span>"
+                    f"<span>{rain_icon} <strong>{rain_val} mm</strong> Rain expected</span>"
+                    f"<span>{hum_icon} <strong>{hum_val}%</strong> Humidity</span>"
+                    f"</div>"
                 )
-            st.session_state.step = "crop"   # reset for next query
+
+                # Colour-coded action cards
+                cards_html = "\n".join(render_action_card(a) for a in actions)
+
+                # Gemini summary box
+                llm_text = res.get("llm_summary", "")
+
+                reply = (
+                    f"### Your farm plan for today 🗓️\n\n"
+                    f"**{crop}** · {location} · *{stage} stage*\n\n"
+                    f"{weather_html}\n\n"
+                    f"---\n\n"
+                    f"**What to do today:**\n\n"
+                    f"{cards_html}\n\n"
+                    f"---\n\n"
+                    f"**AgriSense says:**\n\n"
+                    f"> {llm_text}\n\n"
+                    f"---\n\n"
+                    f"Would you like a plan for **another crop or location**?  \n"
+                    f"Just tell me the crop name, or type `done` if you're all set. 👋"
+                )
+
+            # Reset for next round
+            st.session_state.step     = "crop"
             st.session_state.run_data = {}
 
-        # Handle "done"
-        elif user_input.strip().lower() in ["done", "no", "exit", "quit"]:
-            reply = "Thanks for using AgriSense! Come back tomorrow for your next farm plan. 🌾"
+        # ── User typed "done" ─────────────────────────────────────────────────
+        elif user_input.strip().lower() in {"done", "no", "exit", "quit", "thanks", "thank you"}:
+            reply = (
+                "You're all set for today! 🌾\n\n"
+                "Come back tomorrow and I'll check the weather again and update your farm plan. "
+                "Wishing you a great harvest! 🌻"
+            )
 
         else:
-            reply = "Sorry, I didn't catch that. Which crop would you like guidance for?"
+            reply = (
+                "I didn't quite catch that. Let's start fresh — "
+                "**which crop would you like guidance for?**"
+            )
             st.session_state.step = "crop"
 
-        with st.chat_message("assistant"):
-            st.markdown(reply)
+        with st.chat_message("assistant", avatar="🌾"):
+            st.markdown(reply, unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": reply})
 
 
 # ---------------------------------------------------------------------------
-# Router: show auth or chat based on login state
+# Router
 # ---------------------------------------------------------------------------
 if st.session_state.token:
     show_chat()
