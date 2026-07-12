@@ -2,19 +2,32 @@
 agent.py - FarmAgent orchestrator.
 
 Coordinates the full agent pipeline:
-    1. fetch_weather()    → get live weather data
-    2. decide_actions()   → apply rule engine
-    3. synthesise_advice()→ Gemini LLM natural language summary
-    4. FarmMemory.add_entry() → persist to MongoDB
+    1. fetch_weather()      → get live weather data
+    2. decide_and_advise()  → Gemini reasons from weather data (primary path)
+       └─ fallback:           decide_actions() rule engine if Gemini unavailable
+    3. FarmMemory.add_entry() → persist to MongoDB
 
-This class has no I/O of its own and no Jupyter dependencies.
-It is called by main.py routes and is fully testable in isolation.
+Pipeline change from v1:
+    Before: weather → rules → Gemini (rephrase)
+    After:  weather → Gemini (reason) → [rules fallback if needed]
+
+Gemini is now the decision-maker, not a copywriter.
+rules.py is the safety net, not the engine.
 """
 
 from weather import fetch_weather
-from rules   import decide_actions
-from gemini  import synthesise_advice
+from gemini  import decide_and_advise
+from rules   import decide_actions      # fallback only
 from memory  import FarmMemory
+
+
+def _summarise_from_actions(actions: list[str]) -> str:
+    """
+    Fallback when Gemini is unavailable.
+    Returns empty string — the frontend hides the "AgriSense says:" section
+    when llm_summary is empty, avoiding a pointless repeat of the action cards.
+    """
+    return ""
 
 
 class FarmAgent:
@@ -52,6 +65,7 @@ class FarmAgent:
         weather = fetch_weather(location)
 
         # If the weather fetch failed, return early with a clear error.
+        # main.py converts temp=None to HTTP 422 so the frontend error path fires.
         if "error" in weather:
             return {
                 "crop":         crop,
@@ -65,35 +79,54 @@ class FarmAgent:
 
         weather_summary = weather["summary"]   # { temp, precip, humidity }
 
-        # ── Step 2: Apply rule engine ────────────────────────────────────────
-        decision     = decide_actions(weather, crop, stage)
-        actions      = decision["actions"]
-        explanations = decision["explanations"]
-
-        # ── Step 3: LLM synthesis ────────────────────────────────────────────
-        # Gemini reads the rule output and writes a farmer-friendly paragraph.
-        llm_summary = synthesise_advice(
+        # ── Step 2: LLM decision engine (primary path) ───────────────────────
+        # Gemini reasons from raw weather data and returns structured advice.
+        # Returns None if unavailable — we fall back to rules.py below.
+        llm_result = decide_and_advise(
             crop            = crop,
             location        = location,
             stage           = stage,
             weather_summary = weather_summary,
-            actions         = actions,
-            explanations    = explanations,
         )
 
-        # ── Step 4: Persist to MongoDB ───────────────────────────────────────
-        # Save farm details (crop/location/stage for future sessions)
-        await self.memory.set_farm_details(crop, location, stage)
+        if llm_result is not None and llm_result.get("_invalid_crop"):
+            # ── Crop rejected by LLM — return early, nothing to persist ───────
+            # main.py sees temp=None and raises HTTP 422 with the message,
+            # which the frontend shows as a chat bubble at the crop step.
+            return {
+                "crop":         crop,
+                "location":     location,
+                "stage":        stage,
+                "weather":      {"temp": None, "precip": None, "humidity": None},
+                "actions":      [],
+                "explanations": [],
+                "llm_summary":  llm_result["message"],
+            }
 
-        # Append this run to the user's history
+        if llm_result is not None:
+            # ── Happy path: Gemini succeeded ─────────────────────────────────
+            actions      = llm_result["actions"]
+            explanations = llm_result["explanations"]
+            llm_summary  = llm_result["summary"]
+        else:
+            # ── Fallback: Gemini unavailable → rule engine ───────────────────
+            # Same output shape — frontend works identically either way.
+            print(f"[agent.py] Using rule engine fallback for {crop}/{location}/{stage}")
+            decision     = decide_actions(weather, crop, stage)
+            actions      = decision["actions"]
+            explanations = decision["explanations"]
+            llm_summary  = _summarise_from_actions(actions)
+
+        # ── Step 3: Persist to MongoDB ───────────────────────────────────────
+        await self.memory.set_farm_details(crop, location, stage)
         await self.memory.add_entry({
-            "crop":             crop,
-            "location":         location,
-            "stage":            stage,
-            "weather_snapshot": weather_summary,
+            "crop":              crop,
+            "location":          location,
+            "stage":             stage,
+            "weather_snapshot":  weather_summary,
             "actions_suggested": actions,
-            "explanations":     explanations,
-            "llm_summary":      llm_summary,
+            "explanations":      explanations,
+            "llm_summary":       llm_summary,
         })
 
         # ── Return structured result ─────────────────────────────────────────

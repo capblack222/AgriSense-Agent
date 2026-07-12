@@ -1,120 +1,175 @@
 """
-gemini.py - Gemini LLM reasoning layer.
+gemini.py - Gemini LLM reasoning engine.
 
-Takes the rule engine's structured output (actions + explanations + weather)
-and synthesises it into a single, clear, farmer-friendly paragraph.
+Uses the Gemini REST API directly via httpx — no google-generativeai SDK.
 
-The rule engine is the source of truth for WHAT to do.
-Gemini's job is to make it readable and human - not to invent new advice.
+Reason: google-generativeai depends on protobuf's C extension
+(google._upb._message) which crashes on Python 3.14 with:
+    TypeError: Metaclasses with custom tp_new are not supported.
+Calling the REST API directly eliminates that dependency entirely.
+Same fix pattern as the passlib → bcrypt migration.
 
-If the Gemini call fails for any reason, we gracefully fall back to
-joining the rule engine actions into plain text so the app never breaks.
+API docs: https://ai.google.dev/api/generate-content
 """
 
 import os
-import google.generativeai as genai
+import json
+import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
 
-_API_KEY = os.getenv("GEMINI_API_KEY")
-if _API_KEY:
-    genai.configure(api_key=_API_KEY)
+_API_KEY   = os.getenv("GEMINI_API_KEY")
+_MODEL     = "gemini-1.5-flash-8b"
+_BASE_URL  = "https://generativelanguage.googleapis.com/v1beta/models"
+_ENDPOINT  = f"{_BASE_URL}/{_MODEL}:generateContent"
 
-# We use gemini-1.5-flash: fast, cheap, and more than capable for
-# text synthesis tasks like this. No need for the heavier Pro model.
-_MODEL_NAME = "gemini-1.5-flash"
+# ---------------------------------------------------------------------------
+# Output schema
+# ---------------------------------------------------------------------------
+_SCHEMA_RULES = """
+Return ONLY valid JSON in this exact shape — no extra keys, no markdown fences:
+{
+  "is_valid_crop": true,
+  "invalid_crop_message": "",
+  "actions": [
+    "short imperative recommendation",
+    "..."
+  ],
+  "explanations": [
+    "one-sentence reason for the recommendation above",
+    "..."
+  ],
+  "summary": "A warm paragraph summarising today's plan for the farmer."
+}
+
+If the crop name is not a real agricultural crop (e.g. "Pizza", "Keyboard", "Blarg"):
+  - Set is_valid_crop to false
+  - Set invalid_crop_message to a short, warm message telling the farmer the name
+    wasn't recognised and suggesting they check the spelling or try a common crop
+  - Leave actions as [], explanations as [], summary as ""
+
+If the crop is real:
+  - Set is_valid_crop to true, invalid_crop_message to ""
+  - Fill actions, explanations, summary normally
+
+Other strict constraints:
+- actions and explanations must be the same length (one explanation per action).
+- summary is a single flowing paragraph, not a list.
+- No keys beyond the six above.
+"""
 
 
-def synthesise_advice(
+def _call_gemini(prompt: str) -> str | None:
+    """
+    Make a direct REST call to the Gemini API.
+
+    Returns the raw response text on success, None on any failure.
+    Using httpx (already a project dependency) — no extra packages needed.
+    """
+    if not _API_KEY:
+        return None
+
+    try:
+        r = httpx.post(
+            _ENDPOINT,
+            params={"key": _API_KEY},
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature":        0,              # deterministic output
+                    "response_mime_type": "application/json",
+                },
+            },
+            timeout=30,
+        )
+        r.raise_for_status()
+        data = r.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+
+    except httpx.HTTPStatusError as e:
+        print(f"[gemini.py] HTTP {e.response.status_code}: {e.response.text[:200]}")
+        return None
+    except Exception as e:
+        print(f"[gemini.py] Gemini call failed: {e}")
+        return None
+
+
+def decide_and_advise(
     crop: str,
     location: str,
     stage: str,
     weather_summary: dict,
-    actions: list[str],
-    explanations: list[str],
-) -> str:
+) -> dict | None:
     """
-    Call Gemini to synthesise the rule engine output into natural language.
-
-    Args:
-        crop, location, stage  - farm context
-        weather_summary        - { temp, precip, humidity }
-        actions                - list of imperative recommendations from rules.py
-        explanations           - one-sentence reasoning per action
+    Use Gemini to reason about today's farm conditions and return
+    structured recommendations.
 
     Returns:
-        A single plain-language paragraph the farmer can read and act on.
-        Falls back to a joined action list if the API call fails.
+        On success (valid crop):
+            {
+                "actions":      [str, ...],
+                "explanations": [str, ...],
+                "summary":      str,
+            }
+        On invalid crop:
+            {"_invalid_crop": True, "message": str}
+        On failure (no key, quota, network):
+            None  →  agent.py falls back to rule engine
     """
     if not _API_KEY:
-        # No API key configured - return a clean fallback without crashing
-        return _fallback(actions)
+        return None
 
-    # ── Build the prompt ─────────────────────────────────────────────────────
-    # We give Gemini the full context and the rule engine output.
-    # We're explicit that it should NOT invent advice beyond what the rules say.
-    actions_text      = "\n".join(f"- {a}" for a in actions)
-    explanations_text = "\n".join(f"- {e}" for e in explanations)
+    temp     = weather_summary.get("temp")
+    precip   = weather_summary.get("precip")
+    humidity = weather_summary.get("humidity")
 
-    prompt = f"""You are AgriSense, a helpful farm assistant designed to support smallholder farmers.
+    prompt = f"""You are AgriSense, an experienced agronomist advising smallholder farmers.
 
-A farmer is growing {crop} in {location} at the {stage} stage.
+A farmer is growing {crop} in {location} at the {stage} growth stage.
 
-Current weather:
-- Temperature: {weather_summary.get('temp')}°C
-- Precipitation: {weather_summary.get('precip')} mm
-- Humidity: {weather_summary.get('humidity')}%
+Today's weather conditions:
+- Temperature:   {temp}°C
+- Precipitation: {precip} mm expected today
+- Humidity:      {humidity}%
 
-Our rule engine has produced the following recommendations:
-{actions_text}
+Produce a practical daily farm plan following these guidelines:
+1. Give 3–5 specific, actionable recommendations tailored to {crop} at the {stage} stage.
+2. Ground every recommendation in the actual weather numbers above — avoid generic advice.
+3. Explicitly account for how the {stage} growth stage changes this crop's sensitivity
+   to heat, water stress, and humidity.
+4. Use plain, simple language — the farmer may not have technical training.
+5. The summary should be warm, practical, and encouraging (4–6 sentences).
 
-Supporting explanations:
-{explanations_text}
+{_SCHEMA_RULES}"""
 
-Your task:
-Write a single, warm, clear paragraph (4–6 sentences) that:
-1. Acknowledges today's weather conditions briefly
-2. Explains the most important actions the farmer should take today
-3. Mentions why the growth stage matters for these decisions
-4. Uses simple, plain language - the audience may not be technically trained
+    raw = _call_gemini(prompt)
+    if raw is None:
+        return None
 
-Important: Do NOT invent advice beyond what the rule engine has provided above.
-Do NOT use bullet points. Write in flowing prose. Be practical and encouraging.
-"""
-
-    # ── Call Gemini ──────────────────────────────────────────────────────────
     try:
-        model    = genai.GenerativeModel(_MODEL_NAME)
-        response = model.generate_content(prompt)
-        return response.text.strip()
-    except Exception as e:
-        # Any API error (quota, network, bad key) → fall back gracefully
-        print(f"[gemini.py] Gemini call failed: {e}")
-        return _fallback(actions)
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        print(f"[gemini.py] JSON parse failed: {e} | raw={raw[:200]}")
+        return None
 
-
-def _fallback(actions: list[str]) -> str:
-    """
-    Readable fallback when Gemini is unavailable (no API key or network error).
-    Strips stage-context prefixes (already shown as cards) and joins the
-    remaining action sentences into a clean paragraph.
-    """
-    if not actions:
-        return (
-            "Based on today's weather, no urgent actions are needed. "
-            "Monitor your crop and check back tomorrow."
+    # ── Case 1: invalid crop ─────────────────────────────────────────────────
+    if parsed.get("is_valid_crop") is False:
+        msg = parsed.get("invalid_crop_message") or (
+            "I don't recognise that as an agricultural crop. "
+            "Please check the spelling or try a crop like Wheat, Rice, or Tomato."
         )
+        return {"_invalid_crop": True, "message": msg}
 
-    # Drop the stage-context lines - they're already shown as colour-coded cards
-    clean = [
-        a.split("] ", 1)[-1] if (a.startswith("[") and "] " in a) else a
-        for a in actions
-        if not (a.startswith("[") and "Stage]" in a)
-    ]
-    if not clean:
-        clean = actions
+    # ── Case 2: valid crop — validate shape ──────────────────────────────────
+    if (
+        isinstance(parsed.get("actions"), list)
+        and isinstance(parsed.get("explanations"), list)
+        and isinstance(parsed.get("summary"), str)
+        and len(parsed["actions"]) > 0
+        and len(parsed["actions"]) == len(parsed["explanations"])
+    ):
+        return parsed
 
-    # Ensure each sentence ends with a period, then join into one paragraph
-    sentences = [s.strip().rstrip(".") + "." for s in clean]
-    return " ".join(sentences)
+    print(f"[gemini.py] Unexpected response shape: {list(parsed.keys())} — falling back")
+    return None

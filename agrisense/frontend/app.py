@@ -14,8 +14,10 @@ Change BACKEND_URL to your deployed FastAPI URL when going live.
 """
 
 import re
+from datetime import datetime, timedelta
 import streamlit as st
 import httpx
+import extra_streamlit_components as stx
 
 # ---------------------------------------------------------------------------
 # Config
@@ -27,6 +29,17 @@ st.set_page_config(
     page_icon  = "🌾",
     layout     = "centered",
 )
+
+# ---------------------------------------------------------------------------
+# Cookie manager — persists JWT across page refreshes.
+# @st.cache_resource creates one shared instance for the whole app session.
+# Cookies are stored in the browser and survive refreshes/tab closes.
+# ---------------------------------------------------------------------------
+@st.cache_resource
+def get_cookie_manager():
+    return stx.CookieManager()
+
+_cookies = get_cookie_manager()
 
 # ---------------------------------------------------------------------------
 # Shared CSS - colour-coded recommendation cards
@@ -100,6 +113,18 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
+
+# ---------------------------------------------------------------------------
+# Cookie restore — runs once per page load.
+# If the user refreshed or reopened the tab, pull the saved token and email
+# back into session state so they don't have to log in again.
+# ---------------------------------------------------------------------------
+if not st.session_state.token:
+    _saved_token = _cookies.get("agrisense_token")
+    _saved_email = _cookies.get("agrisense_email")
+    if _saved_token and _saved_email:
+        st.session_state.token      = _saved_token
+        st.session_state.user_email = _saved_email
 
 
 # ---------------------------------------------------------------------------
@@ -215,6 +240,11 @@ def show_auth():
                 if "access_token" in res:
                     st.session_state.token      = res["access_token"]
                     st.session_state.user_email = email
+                    # Persist to browser cookies so refresh doesn't log the user out.
+                    # Expiry matches ACCESS_TOKEN_EXPIRE_MINUTES (default 60 min).
+                    _expire = datetime.now() + timedelta(hours=1)
+                    _cookies.set("agrisense_token", res["access_token"], expires_at=_expire)
+                    _cookies.set("agrisense_email", email,               expires_at=_expire)
                     st.success("Welcome back! Loading your dashboard…")
                     st.rerun()
                 else:
@@ -280,6 +310,8 @@ def show_chat():
 
         st.divider()
         if st.button("🚪  Log Out", use_container_width=True):
+            _cookies.delete("agrisense_token")
+            _cookies.delete("agrisense_email")
             for k, v in defaults.items():
                 st.session_state[k] = v
             st.rerun()
@@ -303,7 +335,7 @@ def show_chat():
             "Tell me your crop and location and I'll check today's weather "
             "to give you a tailored daily farm plan.\n\n"
             "**Which crop would you like guidance for today?**  \n"
-            "*Examples: Wheat, Tomato, Rice, Maize, Soybean, Cotton, Sugarcane*"
+            "*Wheat, Rice, Tomato, Maize, or anything else you're growing — just tell me!*"
         )
         with st.chat_message("assistant", avatar="🌾"):
             st.markdown(greeting)
@@ -323,16 +355,25 @@ def show_chat():
         cleaned = user_input.strip()
         reply   = ""
 
-        _EXIT_WORDS      = {"done", "no", "exit", "quit", "thanks", "thank you", "bye", "stop"}
-        _VALID_STAGES    = {"Seedling", "Vegetative", "Flowering", "Harvest"}
-        # Keep in sync with CROP_CONFIG in backend/rules.py
-        _SUPPORTED_CROPS = {"Wheat", "Tomato", "Rice", "Maize", "Soybean", "Cotton", "Sugarcane"}
-        # Greetings and "confused" phrases — intercepted at every step so they
-        # never get treated as crop names or location names.
-        _GREETING_WORDS  = {"hi", "hello", "hey", "hiya", "howdy", "sup", "good morning",
-                            "good evening", "good afternoon", "namaste"}
-        _CONFUSED_WORDS  = {"idk", "i don't know", "i dont know", "not sure", "unsure",
-                            "dunno", "no idea", "hmm", "?", "help", "what", "huh"}
+        _EXIT_WORDS   = {"done", "no", "exit", "quit", "thanks", "thank you", "bye", "stop"}
+        _VALID_STAGES = {"Seedling", "Vegetative", "Flowering", "Harvest"}
+
+        # Greeting: regex match at the START of the string so "hey there!",
+        # "hello, how are you", etc. are all caught — not just exact words.
+        _GREETING_RE = re.compile(
+            r'^(hi|hello|hey|hiya|howdy|sup|good\s+morning|good\s+evening|'
+            r'good\s+afternoon|namaste)\b',
+            re.IGNORECASE,
+        )
+        # Confused: short standalone phrases ("idk", "not sure", etc.)
+        _CONFUSED_WORDS = {"idk", "i don't know", "i dont know", "not sure",
+                           "unsure", "dunno", "no idea", "hmm", "?", "help", "what", "huh"}
+
+        def _is_greeting(text: str) -> bool:
+            return bool(_GREETING_RE.match(text.strip()))
+
+        def _is_confused(text: str) -> bool:
+            return text.strip().lower() in _CONFUSED_WORDS
 
         # ── EXIT KEYWORDS - checked first ────────────────────────────────────
         if cleaned.lower() in _EXIT_WORDS:
@@ -345,13 +386,12 @@ def show_chat():
             st.session_state.run_data = {}
 
         # ── GREETINGS / CONFUSED — re-prompt for the current step ────────────
-        elif cleaned.lower() in _GREETING_WORDS or cleaned.lower() in _CONFUSED_WORDS:
-            crops_display = " · ".join(sorted(_SUPPORTED_CROPS))
+        elif _is_greeting(cleaned) or _is_confused(cleaned):
             if step == "crop":
                 reply = (
                     "Hey there! 👋 I'm AgriSense, your farm assistant.\n\n"
                     "**Which crop are you growing?**  \n"
-                    f"*{crops_display}*"
+                    "*Wheat, Rice, Tomato, Maize, or anything else — just tell me!*"
                 )
             elif step == "location":
                 reply = (
@@ -370,16 +410,12 @@ def show_chat():
             # Step does not change — we re-ask the same question
 
         # ── Step 1: crop ─────────────────────────────────────────────────────
+        # No allowlist — the LLM handles any crop from first principles.
+        # Only reject inputs that are too short to be a real crop name.
         elif step == "crop":
             crop = cleaned.title()
-            crops_display = " · ".join(sorted(_SUPPORTED_CROPS))
-            if crop not in _SUPPORTED_CROPS:
-                reply = (
-                    f"I don't have data for **{crop}** yet. 🌱\n\n"
-                    f"I currently support these crops:\n\n"
-                    f"**{crops_display}**\n\n"
-                    "Please type one of the above."
-                )
+            if len(crop) < 2:
+                reply = "Please tell me which crop you're growing — for example: Wheat, Tomato, Rice."
                 # Step stays at "crop"
             else:
                 st.session_state.run_data["crop"] = crop
@@ -460,11 +496,12 @@ def show_chat():
                         # not start over from crop selection.
                         st.session_state.step = "location"
                     else:
-                        reply = (
-                            "Something went wrong fetching the weather data. "
-                            "Please try again in a moment - these things sometimes fix themselves!"
-                        )
-                        # General failure: reset fully so the user starts fresh
+                        # Shows the actual message from the backend — could be
+                        # an invalid crop rejection (Gemini's message) or a
+                        # general weather failure string. Either way it appears
+                        # as a chat bubble, not a red error box.
+                        reply = detail
+                        # Reset fully — user re-enters from crop
                         st.session_state.step     = "crop"
                         st.session_state.run_data = {}
 
@@ -492,6 +529,14 @@ def show_chat():
                     cards_html = "\n".join(render_action_card(a) for a in actions)
                     llm_text   = res.get("llm_summary", "")
 
+                    # Only show "AgriSense says:" when the LLM produced a real summary.
+                    # If Gemini was unavailable, llm_summary is "" — we skip the section
+                    # entirely rather than repeating the action cards as prose.
+                    llm_section = (
+                        f"---\n\n**AgriSense says:**\n\n> {llm_text}\n\n"
+                        if llm_text.strip() else ""
+                    )
+
                     reply = (
                         f"### Your farm plan for today 🗓️\n\n"
                         f"**{crop}** · {location} · *{stage} stage*\n\n"
@@ -499,9 +544,7 @@ def show_chat():
                         f"---\n\n"
                         f"**What to do today:**\n\n"
                         f"{cards_html}\n\n"
-                        f"---\n\n"
-                        f"**AgriSense says:**\n\n"
-                        f"> {llm_text}\n\n"
+                        f"{llm_section}"
                         f"---\n\n"
                         f"Would you like a plan for **another crop or location**?  \n"
                         f"Just tell me the crop name, or type `done` if you're all set. 👋"

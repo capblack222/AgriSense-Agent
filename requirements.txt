@@ -13,8 +13,9 @@ bcrypt==4.2.1          # used directly - passlib removed (breaks on Python 3.14)
 # Environment variables
 python-dotenv==1.0.1
 
-# Gemini LLM
-google-generativeai==0.7.2
+# Gemini LLM — using REST API directly (no SDK) for Python 3.14 compatibility.
+# google-generativeai depends on protobuf's C extension which crashes on 3.14.
+# httpx (already listed below) handles the REST calls instead.
 
 # HTTP (weather API + Streamlit → FastAPI calls)
 requests==2.32.2
@@ -22,3 +23,4 @@ httpx==0.27.0
 
 # Frontend
 streamlit==1.35.0
+extra-streamlit-components==0.1.71   # CookieManager — persists JWT across page refreshes
