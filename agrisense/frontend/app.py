@@ -13,6 +13,7 @@ Run locally:
 Change BACKEND_URL to your deployed FastAPI URL when going live.
 """
 
+import os
 import re
 from datetime import datetime, timedelta
 import streamlit as st
@@ -22,7 +23,10 @@ import extra_streamlit_components as stx
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-BACKEND_URL = "http://localhost:8000"
+# Read from env var so the deployed frontend can point at the production API
+# without code changes. Set BACKEND_URL in Streamlit Cloud secrets or your
+# shell when deploying; falls back to localhost for local development.
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 st.set_page_config(
     page_title = "AgriSense - Your Farm Assistant",
@@ -358,6 +362,22 @@ def show_chat():
         _EXIT_WORDS   = {"done", "no", "exit", "quit", "thanks", "thank you", "bye", "stop"}
         _VALID_STAGES = {"Seedling", "Vegetative", "Flowering", "Harvest"}
 
+        # Fuzzy stage keywords — catches "seedling stage", "it's flowering",
+        # "almost ready to harvest", "in the vegetative phase", etc.
+        _STAGE_KEYWORDS = {
+            "Seedling":   ["seed", "seedling", "sprout", "germina", "young plant"],
+            "Vegetative": ["vegetat", "vegeta", "growing", "growth", "leaf", "leaves", "stem"],
+            "Flowering":  ["flower", "bloom", "bud", "fruit", "pollinat"],
+            "Harvest":    ["harvest", "ripe", "ripen", "mature", "ready", "pick"],
+        }
+
+        def _fuzzy_stage(text: str) -> str | None:
+            lower = text.lower()
+            for stage, keywords in _STAGE_KEYWORDS.items():
+                if any(kw in lower for kw in keywords):
+                    return stage
+            return None
+
         # Greeting: regex match at the START of the string so "hey there!",
         # "hello, how are you", etc. are all caught — not just exact words.
         _GREETING_RE = re.compile(
@@ -450,6 +470,10 @@ def show_chat():
         # ── Step 3: stage → validate → run agent ─────────────────────────────
         elif step == "stage":
             stage = cleaned.title()
+
+            # Fuzzy match first — resolves "seedling stage", "flowering phase", etc.
+            if stage not in _VALID_STAGES:
+                stage = _fuzzy_stage(cleaned) or stage
 
             # Reject invalid stages - keep asking until we get a valid one
             if stage not in _VALID_STAGES:
