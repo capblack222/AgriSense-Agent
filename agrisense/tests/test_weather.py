@@ -17,7 +17,7 @@ def test_geocode_request_failure(monkeypatch):
     def fake_get(*args, **kwargs):
         raise requests.RequestException("network down")
 
-    monkeypatch.setattr(weather, "requests", weather.requests)
+    # monkeypatch.setattr(weather, "requests", weather.requests)
     monkeypatch.setattr(weather, "requests", __import__("requests"))
     monkeypatch.setattr(weather.requests, "get", fake_get)
 
