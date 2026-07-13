@@ -1,9 +1,16 @@
 # AgriSense - Setup Guide
 
 ## Prerequisites
-- Python 3.11+
+- Python 3.11+ (tested on 3.11–3.14; see note below for 3.14)
 - A free [MongoDB Atlas](https://cloud.mongodb.com) account (M0 free tier)
-- A free [Gemini API key](https://aistudio.google.com) from Google AI Studio
+- A free [Gemini API key](https://aistudio.google.com) from Google AI Studio  
+  *(Keys starting with `AQ.` require Gemini 3.x models — already configured)*
+
+> **Python 3.14 users:** Set this env var **before** starting any Python process:
+> ```bash
+> export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+> ```
+> Add it to `~/.zshrc` or `~/.bashrc` to make it permanent.
 
 ---
 
@@ -72,7 +79,7 @@ docker run -p 8000:8000 --env-file .env agrisense
 | Frontend | [Streamlit Community Cloud](https://streamlit.io/cloud) | Connect GitHub repo, set `BACKEND_URL` to your deployed API URL |
 | Database | MongoDB Atlas M0 | Already configured via `MONGODB_URL` |
 
-**Before deploying the frontend**, update `BACKEND_URL` in `agrisense/frontend/app.py` to your deployed FastAPI URL.
+**Before deploying the frontend**, set the `BACKEND_URL` environment variable (or Streamlit secret) to your deployed FastAPI URL — no code change needed.
 
 ---
 

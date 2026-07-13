@@ -13,7 +13,7 @@ The idea was originally developed as a capstone project during the **Google × K
 * **Agentic Weather Intelligence:** Combines real-time Open-Meteo API data mapping with rule-based agronomy heuristics to eliminate LLM hallucination in safety-critical agricultural guidance.
 * **State & Memory Management:** Utilizes a decoupled MongoDB architecture to maintain multi-turn, multi-seasonal farm history (crop growth stages, historical soil tracking) across stateless API sessions.
 * **Production-Grade Guardrails:** Enforces secure JWT-based user isolation, strict FastAPI Pydantic input validation, and asynchronous background worker processing to handle heavy external API payloads without blocking the user thread.
-* **Technology Stack:** FastAPI (Python), MongoDB, JWT Authentication, OpenWeather API, LangChain/Gemini API.
+* **Technology Stack:** FastAPI (Python), MongoDB Atlas, JWT Authentication, Open-Meteo API (free), Gemini 3.1 Flash Lite (REST API).
 
 
 ### ❤️ The "Why" Behind AgriSense
@@ -39,7 +39,7 @@ Farm history stored in **MongoDB Atlas** per user account. Sessions survive rest
 Crop-specific and **growth-stage-aware** agronomy logic for irrigation, heat stress, and fungal/pest risk. Thresholds shift based on whether your crop is at Seedling, Vegetative, Flowering, or Harvest stage.
 
 ### 🧩 LLM Reasoning Layer ✅
-**Gemini 1.5 Flash** synthesises rule-engine output into a single, farmer-friendly paragraph. Falls back gracefully if the API is unavailable.
+**Gemini 3.1 Flash Lite** (via direct REST API — no SDK) reasons over live weather data to produce a farmer-friendly daily plan. Falls back gracefully to the rule engine if the API is unavailable. A lightweight crop-name validation call also runs at the crop input step to reject non-crops instantly.
 
 ### 🔐 Authentication
 JWT-based stateless auth (register + login). Passwords hashed with bcrypt + SHA-256 pre-hashing.
@@ -54,14 +54,17 @@ FastAPI backend coordinates weather fetch → rule engine → Gemini synthesis �
 Streamlit (frontend/app.py)
   ↓ HTTP via httpx
 FastAPI (backend/main.py)
+  ├── /agent/validate-crop   lightweight crop name check (no auth)
+  ├── /agent/run             full pipeline (auth required)
+  ├── /agent/history         user decision history (auth required)
   ├── auth.py        JWT register / login
   └── agent.py       Orchestrator
         ├── weather.py   Open-Meteo API → live forecast
-        ├── rules.py     Crop + stage rule engine
-        ├── gemini.py    Gemini 1.5 Flash → natural language summary
+        ├── gemini.py    Gemini 3.1 Flash Lite → reasoning + summary (primary)
+        ├── rules.py     Crop + stage rule engine (fallback when Gemini unavailable)
         └── memory.py    MongoDB read/write (per-user history)
 
-MongoDB Atlas          ← persistent farm memory
+MongoDB Atlas          ← persistent farm memory (users + decision history)
 ```
 
 ---
@@ -76,12 +79,13 @@ Includes weather fetch, irrigation decisions, fungal/pest alerts, and history su
 
 | Layer | Technology |
 |---|---|
-| LLM | Gemini 1.5 Flash (`google-generativeai`) |
+| LLM | Gemini 3.1 Flash Lite (REST API via httpx — no SDK, Python 3.14 compatible) |
 | Backend | FastAPI + Uvicorn |
-| Frontend | Streamlit |
+| Frontend | Streamlit + extra-streamlit-components (cookie auth persistence) |
 | Database | MongoDB Atlas + Motor (async driver) |
-| Auth | python-jose (JWT) + bcrypt |
+| Auth | python-jose (JWT) + bcrypt + SHA-256 pre-hash |
 | Weather | Open-Meteo API (free, no key) |
+| HTTP client | httpx (Gemini calls) + requests (weather) |
 | Container | Docker |
 | Language | Python 3.11+ |
 
@@ -109,17 +113,21 @@ Includes weather fetch, irrigation decisions, fungal/pest alerts, and history su
 ```
 agrisense/
   backend/
-    main.py         FastAPI routes + CORS + health check
-    agent.py        Orchestrator (coordinates all modules)
-    rules.py        Crop + stage-aware decision engine
-    weather.py      Open-Meteo API wrapper
-    gemini.py       Gemini LLM synthesis layer
-    memory.py       MongoDB-backed FarmMemory
-    auth.py         JWT auth + bcrypt password hashing
-    database.py     Motor async MongoDB client (singleton)
-    models.py       Pydantic request/response models
-  frontend/
-    app.py          Streamlit chat UI
+    main.py              FastAPI routes + CORS + health check
+    agent.py             Orchestrator (coordinates all modules)
+    rules.py             Crop + stage-aware decision engine
+    weather.py           Open-Meteo API wrapper
+    gemini.py            Gemini LLM synthesis layer
+    memory.py            MongoDB-backed FarmMemory
+    auth.py              JWT auth + bcrypt password hashing
+    database.py          Motor async MongoDB client (singleton)
+    models.py            Pydantic request/response models
+  frontend/     
+    app.py               Streamlit chat UI
+  tests/ 
+    test_gemini.py       Test for Gemini Model
+    test_rules.py        Test for Hardcoded Rules
+    test_weather.py      Test for the Weather API
 agrisense-agent-code-jupyter-nb.ipynb   original capstone notebook
 Dockerfile
 requirements.txt
