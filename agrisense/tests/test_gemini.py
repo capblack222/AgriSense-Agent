@@ -2,6 +2,53 @@ import json
 import agrisense.backend.gemini as gemini
 
 
+# ---------------------------------------------------------------------------
+# validate_crop tests
+# ---------------------------------------------------------------------------
+
+def test_validate_crop_no_api_key_fails_open(monkeypatch):
+    """Without an API key validate_crop should fail open (is_valid=True)."""
+    monkeypatch.setattr(gemini, "_API_KEY", None)
+    out = gemini.validate_crop("Pizza")
+    assert out["is_valid"] is True
+    assert out["message"] == ""
+
+
+def test_validate_crop_invalid_crop(monkeypatch):
+    """Gemini says not a crop → is_valid=False with a non-empty message."""
+    monkeypatch.setattr(gemini, "_API_KEY", "fake-key")
+    fake = {"is_valid": False, "message": "Pizza isn't a recognised crop."}
+    monkeypatch.setattr(gemini, "_call_gemini", lambda prompt: json.dumps(fake))
+
+    out = gemini.validate_crop("Pizza")
+    assert out["is_valid"] is False
+    assert "Pizza" in out["message"]
+
+
+def test_validate_crop_valid_crop(monkeypatch):
+    """Gemini says it's a real crop → is_valid=True, empty message."""
+    monkeypatch.setattr(gemini, "_API_KEY", "fake-key")
+    fake = {"is_valid": True, "message": ""}
+    monkeypatch.setattr(gemini, "_call_gemini", lambda prompt: json.dumps(fake))
+
+    out = gemini.validate_crop("Wheat")
+    assert out["is_valid"] is True
+    assert out["message"] == ""
+
+
+def test_validate_crop_gemini_failure_fails_open(monkeypatch):
+    """If _call_gemini returns None (network error etc.), fail open."""
+    monkeypatch.setattr(gemini, "_API_KEY", "fake-key")
+    monkeypatch.setattr(gemini, "_call_gemini", lambda prompt: None)
+
+    out = gemini.validate_crop("Wheat")
+    assert out["is_valid"] is True
+
+
+# ---------------------------------------------------------------------------
+# decide_and_advise tests
+# ---------------------------------------------------------------------------
+
 def test_no_api_key_returns_none(monkeypatch):
     # Clear API key to emulate missing configuration
     monkeypatch.setattr(gemini, "_API_KEY", None)

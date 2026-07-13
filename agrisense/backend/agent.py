@@ -62,7 +62,7 @@ class FarmAgent:
         """
 
         # ── Step 1: Fetch weather ────────────────────────────────────────────
-        weather = fetch_weather(location)
+        weather = await fetch_weather(location)
 
         # If the weather fetch failed, return early with a clear error.
         # main.py converts temp=None to HTTP 422 so the frontend error path fires.

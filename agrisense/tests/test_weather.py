@@ -1,63 +1,79 @@
-import requests
+import httpx
+import pytest
 import agrisense.backend.weather as weather
 
 
-class FakeResponse:
-    def __init__(self, payload=None, raise_exc=None):
-        self._payload = payload
-        self._raise_exc = raise_exc
+# ---------------------------------------------------------------------------
+# Async mock helpers
+# ---------------------------------------------------------------------------
 
-    def json(self):
-        if self._raise_exc:
-            raise self._raise_exc
-        return self._payload
+def _make_http_get(*responses):
+    """
+    Returns an async _http_get mock that yields each response dict in order.
+    Raises httpx.RequestError if a response is an exception instance.
+    """
+    calls = list(responses)
+    idx   = {"n": 0}
+
+    async def fake_http_get(url, params, timeout=10):
+        response = calls[idx["n"]]
+        idx["n"] += 1
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+    return fake_http_get
 
 
-def test_geocode_request_failure(monkeypatch):
-    def fake_get(*args, **kwargs):
-        raise requests.RequestException("network down")
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
 
-    # monkeypatch.setattr(weather, "requests", weather.requests)
-    monkeypatch.setattr(weather, "requests", __import__("requests"))
-    monkeypatch.setattr(weather.requests, "get", fake_get)
+@pytest.mark.asyncio
+async def test_geocode_request_failure(monkeypatch):
+    """Network error on geocoding → error dict returned."""
+    monkeypatch.setattr(
+        weather, "_http_get",
+        _make_http_get(httpx.RequestError("network down")),
+    )
+    out = await weather.fetch_weather("Nowhere")
+    assert "error" in out
+    assert "Geocoding request failed" in out["error"]
 
-    out = weather.fetch_weather("Nowhere")
-    assert "error" in out and "Geocoding request failed" in out["error"]
 
-
-def test_location_not_found(monkeypatch):
-    geo_payload = {"results": []}
-
-    def fake_get_geo(*args, **kwargs):
-        return FakeResponse(geo_payload)
-
-    monkeypatch.setattr(weather.requests, "get", fake_get_geo)
-
-    out = weather.fetch_weather("Atlantis")
+@pytest.mark.asyncio
+async def test_location_not_found(monkeypatch):
+    """Empty results from geocoder → error dict returned."""
+    monkeypatch.setattr(
+        weather, "_http_get",
+        _make_http_get({"results": []}),
+    )
+    out = await weather.fetch_weather("Atlantis")
     assert "error" in out
     assert "not found" in out["error"]
 
 
-def test_successful_fetch(monkeypatch):
-    geo_payload = {"results": [{"latitude": 10.0, "longitude": 20.0, "name": "MockCity"}]}
+@pytest.mark.asyncio
+async def test_successful_fetch(monkeypatch):
+    """Happy path: geocode + weather both succeed → full summary returned."""
+    geo_payload = {
+        "results": [{"latitude": 10.0, "longitude": 20.0, "name": "MockCity"}]
+    }
     hourly = {
-        "temperature_2m": [21.5],
-        "precipitation": [0.0],
-        "relative_humidity_2m": [55.0],
+        "temperature_2m":        [21.5],
+        "precipitation":         [0.0],
+        "relative_humidity_2m":  [55.0],
     }
     weather_payload = {"hourly": hourly}
 
-    def fake_get(url, params=None, timeout=None):
-        if "geocoding-api.open-meteo" in url:
-            return FakeResponse(geo_payload)
-        else:
-            return FakeResponse(weather_payload)
+    monkeypatch.setattr(
+        weather, "_http_get",
+        _make_http_get(geo_payload, weather_payload),
+    )
 
-    monkeypatch.setattr(weather.requests, "get", fake_get)
-
-    out = weather.fetch_weather("MockCity")
+    out = await weather.fetch_weather("MockCity")
     assert "hourly" in out
-    assert out["summary"]["temp"] == 21.5
-    assert out["summary"]["precip"] == 0.0
+    assert out["summary"]["temp"]     == 21.5
+    assert out["summary"]["precip"]   == 0.0
     assert out["summary"]["humidity"] == 55.0
-    assert out["location_resolved"] == "MockCity"
+    assert out["location_resolved"]   == "MockCity"
