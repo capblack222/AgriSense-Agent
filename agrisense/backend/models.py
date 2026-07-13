@@ -40,6 +40,17 @@ class TokenResponse(BaseModel):
 # Agent models
 # ---------------------------------------------------------------------------
 
+class ValidateCropRequest(BaseModel):
+    """Body for POST /agent/validate-crop"""
+    crop: str
+
+
+class ValidateCropResponse(BaseModel):
+    """Response from POST /agent/validate-crop"""
+    is_valid: bool
+    message:  str
+
+
 class RunRequest(BaseModel):
     """Body for POST /agent/run"""
     crop:     str = Field(description="Crop name, e.g. 'Wheat', 'Tomato'")

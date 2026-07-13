@@ -9,6 +9,10 @@ Reason: google-generativeai depends on protobuf's C extension
 Calling the REST API directly eliminates that dependency entirely.
 Same fix pattern as the passlib → bcrypt migration.
 
+Model: gemini-3.1-flash-lite
+ gemini-1.5-flash-8b and gemini-2.0-*
+ are deprecated and shut down as of mid-2026.
+
 API docs: https://ai.google.dev/api/generate-content
 """
 
@@ -20,7 +24,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 _API_KEY   = os.getenv("GEMINI_API_KEY")
-_MODEL     = "gemini-1.5-flash-8b"
+_MODEL     = "gemini-3.1-flash-lite"
 _BASE_URL  = "https://generativelanguage.googleapis.com/v1beta/models"
 _ENDPOINT  = f"{_BASE_URL}/{_MODEL}:generateContent"
 
@@ -93,6 +97,52 @@ def _call_gemini(prompt: str) -> str | None:
     except Exception as e:
         print(f"[gemini.py] Gemini call failed: {e}")
         return None
+
+
+def validate_crop(crop: str) -> dict:
+    """
+    Lightweight crop validity check — called at the crop input step before
+    the user fills in location and stage.
+
+    Much cheaper than decide_and_advise(): no weather data, tiny prompt.
+    Fails open (is_valid=True) on any Gemini error so the main flow is never
+    blocked by quota limits or network issues.
+
+    Returns:
+        {"is_valid": True,  "message": ""}               ← real crop / API error
+        {"is_valid": False, "message": "warm rejection"} ← not a crop
+    """
+    if not _API_KEY:
+        return {"is_valid": True, "message": ""}
+
+    prompt = f"""Is "{crop}" a real agricultural crop that farmers grow?
+
+Return ONLY valid JSON — no markdown fences, no extra keys:
+{{
+  "is_valid": true,
+  "message": ""
+}}
+
+Rules:
+- If "{crop}" IS a recognised crop (wheat, rice, tomato, banana, cotton, maize, etc.):
+    set is_valid to true, message to ""
+- If "{crop}" is NOT a crop (e.g. "Note", "Pizza", "Hello", "Keyboard", random words, verbs):
+    set is_valid to false
+    set message to a short, warm 1-sentence reply saying the name wasn't recognised
+    as a crop and suggesting the farmer try something like Wheat, Rice, or Tomato."""
+
+    raw = _call_gemini(prompt)
+    if raw is None:
+        return {"is_valid": True, "message": ""}  # fail open
+
+    try:
+        parsed = json.loads(raw)
+        return {
+            "is_valid": bool(parsed.get("is_valid", True)),
+            "message":  parsed.get("message", ""),
+        }
+    except json.JSONDecodeError:
+        return {"is_valid": True, "message": ""}
 
 
 def decide_and_advise(

@@ -6,8 +6,8 @@
 # secondaryBackgroundColor → slightly deeper parchment - sidebar, input fields
 # textColor        → deep soil brown - readable, warm, not harsh black
 
-primaryColor             = "#40916c"
-backgroundColor          = "#fefae0"
-secondaryBackgroundColor = "#f0e6c8"
+primaryColor             = "#367c5c"
+backgroundColor          = "#f5efc8"
+secondaryBackgroundColor = "#e9e1c9"
 textColor                = "#1b1b1b"
 font                     = "sans serif"

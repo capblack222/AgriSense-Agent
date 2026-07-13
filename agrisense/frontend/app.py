@@ -10,11 +10,12 @@ Farmer-friendly UI with:
 Run locally:
     streamlit run app.py
 
-Change BACKEND_URL to your deployed FastAPI URL when going live.
+Change BACKEND_URL to deployed FastAPI URL when going live.
 """
 
 import os
 import re
+import json
 from datetime import datetime, timedelta
 import streamlit as st
 import httpx
@@ -36,14 +37,11 @@ st.set_page_config(
 
 # ---------------------------------------------------------------------------
 # Cookie manager — persists JWT across page refreshes.
-# @st.cache_resource creates one shared instance for the whole app session.
-# Cookies are stored in the browser and survive refreshes/tab closes.
+# Direct instantiation with a fixed key is the correct pattern for
+# extra-streamlit-components: avoids the phantom reruns caused by
+# @st.cache_resource + experimental_allow_widgets that break button clicks.
 # ---------------------------------------------------------------------------
-@st.cache_resource
-def get_cookie_manager():
-    return stx.CookieManager()
-
-_cookies = get_cookie_manager()
+_cookies = stx.CookieManager(key="agrisense_cookies")
 
 # ---------------------------------------------------------------------------
 # Shared CSS - colour-coded recommendation cards
@@ -51,7 +49,25 @@ _cookies = get_cookie_manager()
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-/* Shared card base */
+/* ── Sidebar layout ── */
+/* Remove the collapse/close button entirely */
+div[data-testid="stSidebarHeader"] {
+    display: none !important;
+}
+/* Make ONLY the top-level widget block a flex column (not nested expander blocks) */
+div[data-testid="stSidebarContent"] > div[data-testid="stVerticalBlock"],
+div[data-testid="stSidebarContent"] > div > div[data-testid="stVerticalBlock"] {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100vh !important;
+}
+/* Spacer that pushes logout to the very bottom */
+.sidebar-spacer {
+    flex: 1 !important;
+    min-height: 40px;
+}
+
+/* ── Shared card base ── */
 .card {
     border-radius: 10px;
     padding: 12px 16px;
@@ -120,23 +136,52 @@ for k, v in defaults.items():
 
 # ---------------------------------------------------------------------------
 # Cookie restore — runs once per page load.
-# If the user refreshed or reopened the tab, pull the saved token and email
-# back into session state so they don't have to log in again.
+# CookieManager is a browser component: it needs one render cycle to transmit
+# cookies back to Python. On a fresh page load st.session_state is empty and
+# _cookies.get() returns None until the JS responds. We trigger one controlled
+# rerun (tracked by a session flag so it only fires once) to give it time.
 # ---------------------------------------------------------------------------
-if not st.session_state.token:
-    _saved_token = _cookies.get("agrisense_token")
-    _saved_email = _cookies.get("agrisense_email")
-    if _saved_token and _saved_email:
-        st.session_state.token      = _saved_token
-        st.session_state.user_email = _saved_email
+# ── Cookie restore (on page refresh / new tab) ───────────────────────────────
+# Both token and email are stored as JSON in a single cookie ("agrisense_auth").
+# One cookie → one .set() / .get() / .delete() call per render, which avoids
+# the DuplicateWidgetID error that fires when .set() is called more than once
+# in the same render cycle (extra-streamlit-components uses a hardcoded key).
+#
+# CookieManager needs one render cycle to transmit cookies back to Python,
+# so we rerun once if they're not ready yet.
+if not st.session_state.token and not st.session_state.get("_prevent_cookie_restore"):
+    _saved_raw = _cookies.get("agrisense_auth")
+    if _saved_raw:
+        try:
+            # CookieManager may auto-parse JSON and return a dict, or return
+            # the raw string depending on the version — handle both.
+            _saved = _saved_raw if isinstance(_saved_raw, dict) else json.loads(_saved_raw)
+            st.session_state.token      = _saved["token"]
+            st.session_state.user_email = _saved["email"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            pass  # malformed cookie — ignore and show login
+    # No explicit st.rerun() here — CookieManager already triggers its own
+    # rerun when its JS component sends cookies back to Python.
+    # Adding a manual st.rerun() here races with that and crashes on first load.
 
+# ── Cookie write (after login) ────────────────────────────────────────────────
+# Written passively here (not inside the button handler) to avoid the
+# CookieManager rerender that would consume the button event mid-click.
+if st.session_state.token and not st.session_state.get("_cookie_written"):
+    _expire = datetime.now() + timedelta(hours=1)
+    _cookies.set(
+        "agrisense_auth",
+        json.dumps({"token": st.session_state.token, "email": st.session_state.user_email}),
+        expires_at=_expire,
+    )
+    st.session_state._cookie_written = True
 
 # ---------------------------------------------------------------------------
 # Helper: classify an action string into a card type
 # ---------------------------------------------------------------------------
 def _card_type(action: str) -> str:
     lower = action.lower()
-    if "irrigat" in lower or "water" in lower or "rain" in lower:
+    if "irrigate" in lower or "water" in lower or "rain" in lower:
         return "irrigation"
     if "heat" in lower or "temperature" in lower or "shade" in lower or "mulch" in lower:
         return "heat"
@@ -244,12 +289,9 @@ def show_auth():
                 if "access_token" in res:
                     st.session_state.token      = res["access_token"]
                     st.session_state.user_email = email
-                    # Persist to browser cookies so refresh doesn't log the user out.
-                    # Expiry matches ACCESS_TOKEN_EXPIRE_MINUTES (default 60 min).
-                    _expire = datetime.now() + timedelta(hours=1)
-                    _cookies.set("agrisense_token", res["access_token"], expires_at=_expire)
-                    _cookies.set("agrisense_email", email,               expires_at=_expire)
-                    st.success("Welcome back! Loading your dashboard…")
+                    # No _cookies.set() here — cookies are written passively at
+                    # the top of the script on the next render to avoid the
+                    # CookieManager rerender that would consume this button event.
                     st.rerun()
                 else:
                     show_friendly_error(res)
@@ -283,9 +325,56 @@ def show_chat():
 
     # ── Sidebar ──────────────────────────────────────────────────────────────
     with st.sidebar:
-        st.markdown(f"**Logged in as**  \n{st.session_state.user_email}")
-        st.divider()
-        st.markdown("#### 📋 Recent Decisions")
+        # Brand header
+        st.markdown("""
+        <div style="
+            background: linear-gradient(135deg, #40916c 0%, #2d6a4f 100%);
+            border-radius: 14px;
+            padding: 22px 16px 18px;
+            text-align: center;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 8px rgba(45,106,79,0.18);
+        ">
+            <div style="font-size: 42px; line-height: 1; margin-bottom: 6px;">🌾</div>
+            <div style="color: #ffffff; font-size: 21px; font-weight: 700;
+                        letter-spacing: 0.5px; margin-bottom: 3px;">AgriSense</div>
+            <div style="color: #b7e4c7; font-size: 12px; letter-spacing: 0.3px;">
+                AI-Powered Farm Assistant
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # User badge
+        st.markdown(f"""
+        <div style="
+            background: #fffdf5;
+            border: 1px solid #d9c68a;
+            border-radius: 10px;
+            padding: 10px 13px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        ">
+            <span style="font-size: 22px;">🧑‍🌾</span>
+            <div style="overflow: hidden;">
+                <div style="font-size: 10px; color: #9e8a6a; text-transform: uppercase;
+                            letter-spacing: 0.7px; margin-bottom: 2px;">Signed in as</div>
+                <div style="font-size: 12px; color: #2d6a4f; font-weight: 600;
+                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {st.session_state.user_email}
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Section label
+        st.markdown("""
+        <div style="font-size: 14px; font-weight: 700; color: #7a6344;
+                    text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">
+            🔍 &nbsp;Recent Searches
+        </div>
+        """, unsafe_allow_html=True)
 
         if st.button("Load my history", use_container_width=True):
             with st.spinner("Fetching your recent decisions…"):
@@ -303,21 +392,49 @@ def show_chat():
                         label = f"🌾 {entry['crop']} @ {entry['location']}"
                         with st.expander(label):
                             st.caption(entry.get("timestamp", ""))
-                            col1, col2, col3 = st.columns(3)
-                            col1.metric("Temp",     f"{ws.get('temp', '-')}°C")
-                            col2.metric("Rain",     f"{ws.get('precip', '-')} mm")
-                            col3.metric("Humidity", f"{ws.get('humidity', '-')}%")
+                            t = ws.get('temp', '-')
+                            p = ws.get('precip', '-')
+                            h = ws.get('humidity', '-')
+                            st.markdown(f"""
+                                    <div style="display:flex;gap:6px;margin:6px 0 10px;">
+                                    <div style="flex:1;background:#f9f4e8;border-radius:6px;padding:6px 4px;text-align:center;">
+                                        <div style="font-size:9px;color:#9e8a6a;font-weight:700;letter-spacing:.5px;">TEMP</div>
+                                        <div style="font-size:14px;font-weight:700;color:#2d6a4f;">{t}°C</div>
+                                    </div>
+                                    <div style="flex:1;background:#f9f4e8;border-radius:6px;padding:6px 4px;text-align:center;">
+                                        <div style="font-size:9px;color:#9e8a6a;font-weight:700;letter-spacing:.5px;">RAIN</div>
+                                        <div style="font-size:14px;font-weight:700;color:#2d6a4f;">{p}mm</div>
+                                    </div>
+                                    <div style="flex:1;background:#f9f4e8;border-radius:6px;padding:6px 4px;text-align:center;">
+                                        <div style="font-size:9px;color:#9e8a6a;font-weight:700;letter-spacing:.5px;">HUM</div>
+                                        <div style="font-size:14px;font-weight:700;color:#2d6a4f;">{h}%</div>
+                                    </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
                             if entry.get("llm_summary"):
                                 st.info(entry["llm_summary"])
             else:
                 st.error("Couldn't load your history right now. Try again in a moment.")
 
-        st.divider()
+        # Flexible spacer pushes tagline + logout to the very bottom
+        # st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
+
+        st.markdown("""
+        <div style="padding-top: 12px; border-top: 1px solid #d9c68a;
+                    text-align: center; font-size: 11px; color: #b0996e; margin-bottom: 8px;">
+            🌱 Built for smallholder farmers<br>
+            <span style="color:#c5a96e;">Inspired by the villages of Kanpur</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
         if st.button("🚪  Log Out", use_container_width=True):
-            _cookies.delete("agrisense_token")
-            _cookies.delete("agrisense_email")
+            _cookies.delete("agrisense_auth")
             for k, v in defaults.items():
                 st.session_state[k] = v
+            # Prevent cookie restore from picking up the not-yet-deleted cookie
+            # on the very next rerun (browser cookie deletion is async).
+            st.session_state._prevent_cookie_restore = True
+            st.session_state._cookie_written         = False
             st.rerun()
 
     # ── Main area ─────────────────────────────────────────────────────────────
@@ -381,7 +498,7 @@ def show_chat():
         # Greeting: regex match at the START of the string so "hey there!",
         # "hello, how are you", etc. are all caught — not just exact words.
         _GREETING_RE = re.compile(
-            r'^(hi|hello|hey|hiya|howdy|sup|good\s+morning|good\s+evening|'
+            r'^(hi+|hello|hey+|hiya|howdy|sup|good\s+morning|good\s+evening|'
             r'good\s+afternoon|namaste)\b',
             re.IGNORECASE,
         )
@@ -393,7 +510,9 @@ def show_chat():
             return bool(_GREETING_RE.match(text.strip()))
 
         def _is_confused(text: str) -> bool:
-            return text.strip().lower() in _CONFUSED_WORDS
+            # Strip trailing punctuation so "what?" matches "what", "hmm..." matches "hmm"
+            normalised = re.sub(r'[?!.,]+$', '', text.strip().lower())
+            return normalised in _CONFUSED_WORDS
 
         # ── EXIT KEYWORDS - checked first ────────────────────────────────────
         if cleaned.lower() in _EXIT_WORDS:
@@ -430,21 +549,34 @@ def show_chat():
             # Step does not change — we re-ask the same question
 
         # ── Step 1: crop ─────────────────────────────────────────────────────
-        # No allowlist — the LLM handles any crop from first principles.
-        # Only reject inputs that are too short to be a real crop name.
+        # Validate immediately via a lightweight Gemini call so "Note", "Pizza",
+        # "Hello" etc. are caught here — not after the user fills in location
+        # and stage too. Fails open if Gemini is unavailable.
         elif step == "crop":
             crop = cleaned.title()
             if len(crop) < 2:
                 reply = "Please tell me which crop you're growing — for example: Wheat, Tomato, Rice."
                 # Step stays at "crop"
             else:
-                st.session_state.run_data["crop"] = crop
-                reply = (
-                    f"Great - **{crop}**! 🌿\n\n"
-                    "**Which city or region is your farm in?**  \n"
-                    "*For example: Ranchi, Pune, Ahmedabad, Lucknow…*"
-                )
-                st.session_state.step = "location"
+                with st.spinner("Checking that crop name…"):
+                    validation = api_post("/agent/validate-crop", {"crop": crop})
+
+                if validation.get("is_valid") is False:
+                    # Gemini says not a real crop — show its message and re-ask
+                    reply = validation.get("message") or (
+                        f"I don't recognise **{crop}** as an agricultural crop. "
+                        "Could you check the spelling? Try something like Wheat, Rice, or Tomato."
+                    )
+                    # Step stays at "crop"
+                else:
+                    # Valid crop (or Gemini unavailable → fail open → proceed)
+                    st.session_state.run_data["crop"] = crop
+                    reply = (
+                        f"Great - **{crop}**! 🌿\n\n"
+                        "**Which city or region is your farm in?**  \n"
+                        "*For example: Ranchi, Pune, Ahmedabad, Lucknow…*"
+                    )
+                    st.session_state.step = "location"
 
         # ── Step 2: location ─────────────────────────────────────────────────
         elif step == "location":
