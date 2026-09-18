@@ -1,0 +1,129 @@
+COTTON CROP MANAGEMENT GUIDE
+==============================
+
+Cotton (Gossypium hirsutum) is India's most important commercial crop, grown primarily in Maharashtra, Gujarat, Andhra Pradesh, and Telangana. India is the world's largest cotton producer.
+
+IRRIGATION MANAGEMENT
+---------------------
+Cotton has a moderate water requirement of 700-1200mm per season. It is moderately drought-tolerant but highly sensitive to waterlogging.
+
+Cotton cannot tolerate flooded conditions for more than 24 hours. Ensure proper field drainage before planting.
+
+Critical irrigation stages:
+- Germination: adequate moisture for uniform germination
+- Squaring (flower bud formation, 45-65 days): irrigate to support bud development
+- Flowering (65-100 days): most critical period - water deficit causes flower shedding (boll drop)
+- Boll development (100-130 days): maintain moisture for fiber development inside bolls
+- Boll opening stage: reduce irrigation to encourage uniform opening. Excess moisture delays boll opening and promotes boll rot.
+
+In rainfed cotton areas (Vidarbha), the crop often faces terminal drought during boll development - this is the leading cause of farmer distress in the region.
+
+HEAT STRESS MANAGEMENT
+-----------------------
+Cotton is heat-tolerant relative to other crops, with growth threshold of 35°C. However, temperatures above 40°C during flowering cause anther desiccation and reduce pollination.
+
+Night temperatures above 30°C cause flower abortion. High humidity combined with high temperatures promote boll rot (Phytophthora parasitica).
+
+Management:
+- Cotton benefits from mulching to maintain soil moisture during peak summer
+- Growing Bt-cotton hybrids like Bunny Bt or Mallika provides some heat tolerance advantage along with pest resistance
+
+GROWTH STAGE GUIDE
+-------------------
+Seedling stage (0-25 days):
+Cotton is sensitive to damping-off especially in heavy clay soils with poor drainage. Treat seeds with thiram before sowing. Do not overwater at emergence. Leaf area development is slow in the first 3 weeks.
+
+Vegetative stage (25-50 days):
+Square (flower bud) formation begins. This is when nitrogen uptake peaks. Apply 1/2 of recommended nitrogen. Scout for thrips on young leaves - they cause leaf curling (not to be confused with Cotton Leaf Curl Virus which also causes curling but is vectored by whitefly).
+
+Flowering and Boll Setting stage (50-100 days):
+Most economically important stage. Each flower that successfully sets a boll contributes to yield. American bollworm (Helicoverpa armigera) and Pink bollworm (Pectinophora gossypiella) are the two most damaging pests here. Bt cotton significantly reduces H. armigera damage. Use pheromone traps to monitor Pink bollworm population.
+
+Boll Development (100-130 days):
+Bolls fill with fiber. Protect from sucking pests which cause boll shedding. Whitefly is a major problem transmitting Cotton Leaf Curl Virus (CLCuV) - a devastating disease that can destroy entire crops. Apply imidacloprid or thiamethoxam at first sign of whitefly population increase.
+
+Boll Opening and Harvest (130-180 days):
+When 60-70% of bolls have opened, harvest is ready. Pick cotton in the morning when dew is dry. Wet cotton fetches lower price and quality. High humidity during boll opening causes gray mold (Botrytis) which stains fibers.
+
+---
+
+SOYBEAN CROP MANAGEMENT GUIDE
+================================
+
+Soybean (Glycine max) is a major oilseed and protein crop grown extensively in Madhya Pradesh, Maharashtra, and Rajasthan during the Kharif season.
+
+IRRIGATION MANAGEMENT
+---------------------
+Soybean is largely rainfed in India but responds well to supplemental irrigation during dry spells. Water requirement is 450-700mm per season.
+
+Critical irrigation periods:
+- Pre-sowing: ensure good soil moisture for uniform germination
+- Flowering (R1-R2, 35-55 days after sowing): any water deficit causes flower drop and reduced pod set
+- Pod fill (R5-R6, 70-90 days after sowing): critical for seed size. Water deficit at this stage directly reduces oil and protein content.
+
+Soybean does not tolerate waterlogging. Ensure ridges and furrow planting to drain excess rain quickly. Flooded soybean shows yellowing within 48 hours.
+
+HEAT STRESS MANAGEMENT
+-----------------------
+Soybean grows best at 20-30°C. Temperatures above 32°C reduce pollen viability and pod set. Night temperatures above 27°C disrupt nodule formation, reducing biological nitrogen fixation which is soybean's key agronomic advantage.
+
+Heat stress management:
+- Rhizobium inoculation of seeds before sowing ensures effective nitrogen fixation even under heat stress
+- Apply zinc sulfate (25 kg/ha) to improve heat stress tolerance
+- Grow heat-tolerant varieties: JS 335, JS 9305, MAUS-71
+
+GROWTH STAGE GUIDE
+-------------------
+Seedling stage: Ensure good rhizobium inoculation. Seeds develop nitrogen-fixing nodules within 15-20 days of germination. Do not apply starter nitrogen fertilizer as it suppresses nodule formation.
+
+Vegetative stage: Scout for stemfly (Melanagromyza sojae) which bores into stems causing wilting of terminal shoots. Yellow mosaic virus (spread by whitefly) causes yellow mosaic pattern on leaves - remove affected plants immediately.
+
+Flowering and Pod Set stage: The most critical period. Maintain moisture and control leaf-eating insects. Girdle beetle (Obereopsis brevis) girdles the stem, causing breakage. Apply chlorpyrifos if girdle beetle damage exceeds 5%.
+
+Seed fill stage: Protect against pod-boring insects. Legume pod borer (Maruca vitrata) bores into pods, destroying developing seeds. Apply spinosad or emamectin benzoate.
+
+Harvest stage: Harvest when 95% of pods have turned brown and seed moisture is 13-15%. Delayed harvest causes pod shattering, leading to significant field losses. Thresh immediately and dry to below 12% moisture for safe storage.
+
+---
+
+SUGARCANE CROP MANAGEMENT GUIDE
+==================================
+
+Sugarcane (Saccharum officinarum) is a perennial tropical crop, typically grown as a 12-18 month crop in India. Maharashtra, Uttar Pradesh, Karnataka, and Tamil Nadu are the major producing states.
+
+IRRIGATION MANAGEMENT
+---------------------
+Sugarcane has the highest water requirement of all major crops at 1500-2500mm per crop cycle. It is grown almost exclusively under irrigation in India.
+
+Irrigation schedule:
+- Germination phase (0-30 days): irrigate lightly every 7-10 days to maintain moisture without waterlogging
+- Tillering phase (30-90 days): irrigate every 10-12 days. Heavy rain can cause waterlogging which severely damages young tillers.
+- Grand growth phase (90-210 days): this is the period of maximum growth. Irrigate every 10-15 days. Water deficit during this period reduces final stalk height and sucrose accumulation. Apply 7-8 cm per irrigation.
+- Ripening phase (210-270 days): reduce irrigation significantly to promote sucrose accumulation. Irrigating heavily during ripening dilutes juice quality and reduces sugar recovery.
+- Pre-harvest: stop irrigation 4-6 weeks before harvest
+
+HEAT STRESS MANAGEMENT
+-----------------------
+Sugarcane is highly heat-tolerant and actually benefits from warm temperatures for maximum growth. Growth is optimal at 27-38°C. Temperatures above 38°C can cause desiccation of young leaves and reduced photosynthesis.
+
+The main concern is cool temperatures (below 20°C) during ripening which slow sucrose accumulation, and frost (below 0°C) which kills the crop.
+
+GROWTH STAGE GUIDE
+-------------------
+Germination/Seedling stage (0-30 days): Sett (stem cuttings) germination. Keep soil moist for germination. Avoid waterlogging which causes sett rot. Apply chlorpyrifos at planting to protect against termites and soil-borne insects.
+
+Tillering stage (30-90 days): Multiple shoots emerge from each sett. This stage determines final stool population (number of canes per unit area). Earthing up (hilling soil against plants) encourages tiller rooting and stability.
+
+Grand Growth phase (90-210 days): The crop puts on most of its height and biomass during this 4-5 month period. This is when the crop requires maximum nutrition and irrigation. Apply nitrogen in 3-4 splits. Scout for top borer (Scirpophaga excerptalis) which causes dead heart.
+
+Maturation/Ripening (210-270 days): Sucrose accumulates in the stalk. Apply ethephon (a ripening agent) to accelerate sucrose accumulation in early ripening varieties. Reduce irrigation to stress the crop mildly and promote sugar translocation into the stalk.
+
+PEST AND DISEASE MANAGEMENT
+-----------------------------
+Red rot (Colletotrichum falcatum): Most serious disease. Red internal stalk tissue with white patches. Destroyed sucrose. Use disease-free planting material. Treat setts with carbendazim solution.
+
+Smut (Sporisorium scitamineum): Whip-like black structure replacing the shoot. Highly contagious. Remove and burn infected plants. Use resistant varieties.
+
+Woolly aphid: White cottony masses on roots and leaf undersides. A relatively new invasive pest. Apply dimethoate or chlorpyrifos drenching.
+
+Termites: Hollow setts and girdled roots. Apply chlorpyrifos FG 3% in irrigation channels.

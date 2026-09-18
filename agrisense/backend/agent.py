@@ -2,23 +2,79 @@
 agent.py - FarmAgent orchestrator.
 
 Coordinates the full agent pipeline:
-    1. fetch_weather()      → get live weather data
-    2. decide_and_advise()  → Gemini reasons from weather data (primary path)
+    1. fetch_weather()      → get live weather data      ┐
+       retrieve_context()  → RAG knowledge retrieval     ├─ concurrent via asyncio.gather
+       get_history()       → MongoDB farm memory         ┘
+    2. decide_and_advise()  → Gemini reasons from weather + RAG context (primary path)
        └─ fallback:           decide_actions() rule engine if Gemini unavailable
     3. FarmMemory.add_entry() → persist to MongoDB
 
 Pipeline change from v1:
     Before: weather → rules → Gemini (rephrase)
-    After:  weather → Gemini (reason) → [rules fallback if needed]
+    v2:     weather → Gemini (reason) → [rules fallback if needed]
+    v3:     weather + RAG knowledge → Gemini (reason + grounded) → [rules fallback]
 
 Gemini is now the decision-maker, not a copywriter.
-rules.py is the safety net, not the engine.
+RAG provides agronomic knowledge context to reduce hallucination.
+rules.py is the safety net.
 """
+
+import asyncio
+import logging
 
 from weather import fetch_weather
 from gemini  import decide_and_advise
 from rules   import decide_actions      # fallback only
 from memory  import FarmMemory
+
+logger = logging.getLogger(__name__)
+
+# ── RAG retriever (loaded lazily — ingest must have been run first) ──────────
+_retriever = None
+
+def _get_retriever():
+    """Load RAG retriever once and reuse. Returns None if index not built yet."""
+    global _retriever
+    if _retriever is None:
+        try:
+            from rag import Retriever
+            _retriever = Retriever()
+            print("[agent.py] ✅ RAG retriever loaded successfully")
+        except Exception as exc:
+            print(f"[agent.py] ⚠️  RAG retriever unavailable: {exc} — continuing without RAG")
+            _retriever = False  # sentinel: don't retry on every call
+    return _retriever if _retriever else None
+
+
+async def _fetch_rag_context(crop: str, stage: str, weather_summary: dict) -> str:
+    """
+    Build a query from the current request and retrieve relevant knowledge chunks.
+    Runs in a thread pool executor so it doesn't block the event loop.
+
+    Returns a formatted context string (empty string if RAG is unavailable).
+    """
+    retriever = _get_retriever()
+    if retriever is None:
+        return ""
+
+    # Build a rich query: crop + stage + weather signals
+    temp = weather_summary.get("temp", "")
+    humidity = weather_summary.get("humidity", "")
+    query = f"{crop} crop {stage} stage irrigation management"
+    if temp:
+        query += f" temperature {temp}°C"
+    if humidity:
+        query += f" humidity {humidity}%"
+
+    try:
+        loop = asyncio.get_event_loop()
+        context = await loop.run_in_executor(
+            None, retriever.retrieve_and_format, query, 5, 2000
+        )
+        return context
+    except Exception as exc:
+        print(f"[agent.py] ⚠️  RAG retrieval failed: {exc}")
+        return ""
 
 
 def _summarise_from_actions(actions: list[str]) -> str:
@@ -61,8 +117,13 @@ class FarmAgent:
         }
         """
 
-        # ── Step 1: Fetch weather ────────────────────────────────────────────
-        weather = await fetch_weather(location)
+        # ── Step 1: Concurrent fetch — weather + RAG context ────────────────────
+        # Both are independent I/O; run them in parallel to reduce latency.
+        # RAG is best-effort: a failure returns empty string, not an error.
+        weather, rag_context = await asyncio.gather(
+            fetch_weather(location),
+            _fetch_rag_context(crop, stage, {}),  # empty weather dict OK here
+        )
 
         # If the weather fetch failed, return early with a clear error.
         # main.py converts temp=None to HTTP 422 so the frontend error path fires.
@@ -79,14 +140,23 @@ class FarmAgent:
 
         weather_summary = weather["summary"]   # { temp, precip, humidity }
 
+        # Re-fetch RAG with real weather data for a better query
+        # (only if first attempt returned empty — i.e., weather was not yet known)
+        if not rag_context:
+            rag_context = await _fetch_rag_context(crop, stage, weather_summary)
+
+        if rag_context:
+            print(f"[agent.py] ✅ RAG context retrieved ({len(rag_context)} chars)")
+
         # ── Step 2: LLM decision engine (primary path) ───────────────────────
-        # Gemini reasons from raw weather data and returns structured advice.
+        # Gemini reasons from raw weather data + RAG knowledge context.
         # Returns None if unavailable — we fall back to rules.py below.
         llm_result = decide_and_advise(
             crop            = crop,
             location        = location,
             stage           = stage,
             weather_summary = weather_summary,
+            rag_context     = rag_context,
         )
 
         if llm_result is not None and llm_result.get("_invalid_crop"):

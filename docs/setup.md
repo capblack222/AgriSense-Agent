@@ -45,16 +45,47 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ---
 
-## 3. Run locally
+## 2b. Configure AWS (for RAG pipeline)
 
-**Backend** (from `agrisense/backend/`):
+The RAG pipeline uses AWS Bedrock Titan Embeddings V2. You need AWS credentials with Bedrock access in `us-east-1`.
+
 ```bash
-uvicorn main:app --reload --port 8000
+aws configure
+# AWS Access Key ID: <your key>
+# AWS Secret Access Key: <your secret>
+# Default region: us-east-1
+# Default output format: json
 ```
 
-**Frontend** (from `agrisense/frontend/`):
+Or set as environment variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION=us-east-1`.
+
+---
+
+## 2c. Build the RAG knowledge index (one-time)
+
+Run once after installing dependencies. Embeds all knowledge base documents into a local Chroma vector index (~20 seconds, 118 chunks):
+
 ```bash
-streamlit run app.py
+cd agrisense
+python3 -m backend.rag.ingest
+```
+
+Expected output: `✅ Ingest complete! 118 chunks indexed.`
+
+The index persists to `agrisense/backend/rag/chroma_index/` and does not need to be rebuilt unless you add new knowledge base files.
+
+---
+
+## 3. Run locally
+
+**Backend** (from `agrisense/` directory):
+```bash
+PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python uvicorn backend.main:app --reload --port 8000
+```
+
+**Frontend** (from `agrisense/` directory, separate terminal):
+```bash
+PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python streamlit run frontend/app.py
 ```
 
 Visit `http://localhost:8501` for the chat UI.  

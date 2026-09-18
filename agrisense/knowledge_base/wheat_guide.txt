@@ -1,0 +1,65 @@
+WHEAT CROP MANAGEMENT GUIDE
+============================
+
+Wheat (Triticum aestivum) is one of the most widely grown cereal crops globally and a staple food for smallholder farmers across India, particularly in states like Punjab, Haryana, and Uttar Pradesh.
+
+IRRIGATION MANAGEMENT
+---------------------
+Wheat has a moderate water requirement of 400-500mm over its growing season. The crop is highly sensitive to water stress during the crown root initiation stage (20-25 days after sowing) and the heading and grain filling stages.
+
+Irrigate wheat at the following critical stages:
+- Crown root initiation (CRI): 20-25 days after sowing. Apply 5-6 cm of water. Missing this irrigation significantly reduces tillering.
+- Tillering stage: 40-45 days after sowing. Apply 6 cm of water if rainfall is insufficient.
+- Jointing stage: 65-70 days after sowing. This is a critical growth period.
+- Flowering/heading: 85-90 days after sowing. Water stress at this stage causes pollen sterility and severe yield loss.
+- Grain filling (milky stage): 100-105 days after sowing. Adequate moisture ensures plump grain development.
+- Dough stage: 115-120 days after sowing. Last irrigation before maturity.
+
+When rainfall exceeds 5mm on any day, skip the scheduled irrigation to avoid waterlogging. Waterlogged wheat fields for more than 24 hours suffer significant root damage.
+
+HEAT STRESS MANAGEMENT
+-----------------------
+Wheat is a cool-season crop. Temperature above 32°C during the vegetative stage slows growth. Temperatures above 30°C during the flowering stage cause pollen sterility and direct yield loss.
+
+Terminal heat stress (temperatures above 30°C during grain filling) is the most damaging and common problem in Indian wheat production. It compresses the grain filling period and reduces final grain weight.
+
+Management of heat stress in wheat:
+- Sow early (November in North India) to avoid terminal heat stress during grain filling
+- Apply mulch between rows to reduce soil temperature
+- Foliar application of potassium nitrate (1%) at heading helps reduce heat stress
+- Use heat-tolerant varieties like HD-3086, GW-496, or HI-8498
+- Evening irrigation during hot periods reduces canopy temperature by 2-3°C
+
+GROWTH STAGE GUIDE
+-------------------
+Seedling stage (0-20 days after sowing):
+The seedling stage is most vulnerable to damping-off fungal disease, especially under high humidity and cool temperatures. Ensure well-drained soil. Do not overwater. Apply a light irrigation to establish the crop. Watch for aphid infestation on young leaves.
+
+Vegetative/Tillering stage (21-60 days after sowing):
+This is the period of active leaf and tiller production. Provide adequate nitrogen fertilizer. Monitor for rust diseases. Temperature between 15-22°C is ideal. Irrigate at tillering to encourage maximum tiller formation, which directly determines yield potential.
+
+Jointing/Booting stage (61-85 days after sowing):
+The stem elongates and the flag leaf emerges. This stage is sensitive to both drought and frost. Apply second dose of nitrogen. Scout for yellow rust (Puccinia striiformis) which appears as yellow stripes on leaves.
+
+Flowering/Heading stage (86-100 days after sowing):
+The most critical stage for yield determination. Any stress here reduces yield dramatically. Maintain adequate soil moisture. Temperatures should ideally be 18-24°C. Watch for loose smut (Ustilago tritici) which destroys grain completely.
+
+Grain Filling/Dough stage (101-120 days after sowing):
+Grain weight is being built. Maintain moisture but reduce irrigation frequency. High humidity at this stage can cause Fusarium head blight, which produces mycotoxins in grain. Ensure good airflow between plants.
+
+Harvest stage (121+ days after sowing):
+Grain moisture should be 12-14% at harvest. High humidity at harvest causes grain discoloration and sprouting. Harvest promptly when the straw turns golden and the grain is hard. Delay causes shattering losses.
+
+PEST AND DISEASE MANAGEMENT
+-----------------------------
+Yellow rust (stripe rust): Yellow-orange pustules in stripes on leaves. Most damaging in cool, humid conditions. Apply propiconazole fungicide at first sign of infection.
+
+Aphids: Small green insects on young leaves and ears. Can transmit barley yellow dwarf virus. Apply imidacloprid or thiamethoxam when aphid population exceeds 10 per tiller.
+
+Termites: Cause wilting and drying of tillers. Apply chlorpyrifos in irrigation water.
+
+Rodents: Can cause significant damage to stored grain. Use snap traps or zinc phosphide bait around field borders.
+
+HUMIDITY MANAGEMENT
+--------------------
+High relative humidity above 75% creates ideal conditions for fungal diseases including rust, smut, and powdery mildew. After rain or irrigation, ensure good airflow between plants. Avoid excessive plant density. Remove crop debris from the field after harvest to reduce inoculum for the following season.

@@ -26,6 +26,11 @@ httpx==0.27.0
 streamlit==1.35.0
 extra-streamlit-components==0.1.71   # CookieManager — persists JWT across page refreshes
 
+# RAG pipeline
+boto3               # AWS Bedrock (Titan Embeddings V2)
+chromadb            # local persistent vector store
+pypdf               # PDF ingestion for future knowledge base expansion
+
 # Testing
 pytest
 pytest-asyncio      # required for async test functions in test_weather.py

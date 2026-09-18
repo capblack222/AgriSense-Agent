@@ -1,0 +1,71 @@
+RICE CROP MANAGEMENT GUIDE
+============================
+
+Rice (Oryza sativa) is the most important food crop in Asia and a primary staple for over half the world's population. In India, rice is grown extensively in West Bengal, Uttar Pradesh, Andhra Pradesh, Punjab, and Bihar under both irrigated and rainfed conditions.
+
+IRRIGATION MANAGEMENT
+---------------------
+Rice has one of the highest water requirements of any cereal crop, typically 1200-2000mm per season under flooded conditions. However, alternate wetting and drying (AWD) techniques can reduce water use by 30% without yield loss.
+
+Traditional flooded management:
+- Maintain 2-5 cm standing water from transplanting through active tillering
+- At maximum tillering (25-30 days after transplanting), drain the field for 5-7 days to control excessive tillering and root aeration
+- Re-flood before panicle initiation and maintain throughout heading and grain filling
+- Drain 10-15 days before harvest to allow soil to dry for combine access
+
+Alternate Wetting and Drying (AWD):
+- Allow the field to dry until soil water level drops to 15-20 cm below surface
+- Re-flood to 5 cm standing water
+- Do NOT allow soil to dry beyond this threshold during panicle initiation, heading, and grain filling - these stages are critically sensitive to water deficit
+
+No-irrigation or rainfall indication:
+When rainfall provides more than 10mm per day, no supplemental irrigation is required. Monitor standing water levels. Excessive flooding above 20 cm during tillering can suppress tiller development.
+
+HEAT STRESS MANAGEMENT
+-----------------------
+Rice is tropical in origin but sensitive to high temperatures at specific stages. Temperatures above 34°C during flowering cause spikelet sterility - the most devastating heat damage in rice.
+
+Symptoms of heat stress:
+- White, empty spikelets at harvest
+- Low grain filling percentage
+- Small, shrunken grains
+
+Management:
+- Transplant to avoid peak summer temperatures during flowering. In North India, transplant in June to flower in September when temperatures moderate.
+- Apply silica fertilizer (250 kg/ha silica) to improve heat tolerance
+- Increase standing water depth to 10-15 cm during peak heat - water has a cooling effect on the canopy
+- Grow heat-tolerant varieties: Naveen, Shivam, or MTU-7029
+
+GROWTH STAGE GUIDE
+-------------------
+Seedling/Nursery stage (0-25 days):
+Seeds germinate in nursery beds. Keep nursery moist but not flooded. Damping-off is the major disease threat at this stage - caused by Pythium and Rhizoctonia. Avoid overwatering. Treat seeds with Trichoderma viride before sowing to reduce fungal infection.
+
+Vegetative stage (transplanting to 50 days after transplanting):
+After transplanting, allow 2-3 days for establishment before flooding. During active tillering, maintain 2-5 cm water. Apply nitrogen fertilizer in 3 splits: basal, at tillering, and at panicle initiation. Monitor for stem borer - look for dead hearts (wilted central shoot) in young plants.
+
+Panicle Initiation to Booting (50-80 days after transplanting):
+The most critical stage for water management. Never let the field go dry during this period. Leaf blast disease (Pyricularia oryzae) is most damaging at booting. Apply tricyclazole fungicide if blast symptoms appear on leaves.
+
+Heading and Flowering (80-95 days after transplanting):
+Panicle emergence and flowering. Extremely sensitive to heat and drought. Maintain standing water. Night temperatures below 15°C can also cause spikelet sterility (cold injury). Apply zinc sulfate if leaves show inter-veinal chlorosis.
+
+Grain Filling (95-115 days after transplanting):
+Grains fill with starch. Maintain moisture through AWD. Brown planthopper is a major pest at this stage - small brown insects cause "hopper burn" (yellowing and drying from the base). Apply buprofezin or thiamethoxam if population exceeds 5 per hill.
+
+Harvest stage (115-130 days after transplanting):
+Drain field 10-15 days before harvest. Grain should be hard and golden/brown. Moisture at harvest should be 20-22% for combine harvesting, 18-20% for manual harvesting. High humidity at harvest causes grain discoloration and aflatoxin contamination.
+
+PEST AND DISEASE MANAGEMENT
+-----------------------------
+Blast disease (Pyricularia oryzae): Most important fungal disease of rice. Creates spindle-shaped grey lesions on leaves (leaf blast) and rotted neck region (neck blast). Neck blast can destroy the entire panicle. Apply tricyclazole 75WP at 600g/ha at booting stage.
+
+Bacterial blight (Xanthomonas oryzae): Water-soaked lesions on leaf margins turning yellow then straw-colored. Use copper-based bactericides. Drain flooded fields after storm damage which spreads bacteria.
+
+Brown planthopper: Sucks phloem sap, causing yellowing from the base upward. Maintain natural enemy populations by avoiding broad-spectrum insecticides early in the season.
+
+Stem borer: Dead heart symptom in vegetative stage, white ear symptom in reproductive stage. Apply carbofuran granules at 3kg ai/ha if infestation exceeds 5% dead hearts.
+
+HUMIDITY AND FUNGAL RISK
+--------------------------
+Rice is grown in high-humidity environments by nature. Relative humidity above 80% with temperatures of 20-28°C is ideal for blast disease development. After periods of heavy rainfall or fog, inspect fields carefully for blast symptoms. Sheath blight (Rhizoctonia solani) develops at high humidity and dense canopy - maintain proper plant spacing (20x15 cm) for airflow.

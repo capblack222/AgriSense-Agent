@@ -150,6 +150,7 @@ def decide_and_advise(
     location: str,
     stage: str,
     weather_summary: dict,
+    rag_context: str = "",
 ) -> dict | None:
     """
     Use Gemini to reason about today's farm conditions and return
@@ -174,6 +175,16 @@ def decide_and_advise(
     precip   = weather_summary.get("precip")
     humidity = weather_summary.get("humidity")
 
+    # Optionally inject RAG knowledge context into the prompt
+    rag_section = ""
+    if rag_context:
+        rag_section = f"""
+Relevant agronomic knowledge for reference (use this to ground your advice):
+---
+{rag_context}
+---
+"""
+
     prompt = f"""You are AgriSense, an experienced agronomist advising smallholder farmers.
 
 A farmer is growing {crop} in {location} at the {stage} growth stage.
@@ -182,14 +193,16 @@ Today's weather conditions:
 - Temperature:   {temp}°C
 - Precipitation: {precip} mm expected today
 - Humidity:      {humidity}%
-
+{rag_section}
 Produce a practical daily farm plan following these guidelines:
 1. Give 3–5 specific, actionable recommendations tailored to {crop} at the {stage} stage.
 2. Ground every recommendation in the actual weather numbers above — avoid generic advice.
 3. Explicitly account for how the {stage} growth stage changes this crop's sensitivity
    to heat, water stress, and humidity.
-4. Use plain, simple language — the farmer may not have technical training.
-5. The summary should be warm, practical, and encouraging (4–6 sentences).
+4. If agronomic knowledge is provided above, use it to make recommendations more precise
+   and specific (e.g. exact temperature thresholds, specific pest names, correct stage timing).
+5. Use plain, simple language — the farmer may not have technical training.
+6. The summary should be warm, practical, and encouraging (4–6 sentences).
 
 {_SCHEMA_RULES}"""
 

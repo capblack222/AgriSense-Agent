@@ -1,0 +1,182 @@
+[
+  {
+    "id": "wheat_01",
+    "query": "When should I irrigate wheat at the flowering stage?",
+    "expected_keywords": ["flowering", "85", "90", "pollen", "stress"],
+    "expected_source": "wheat_guide.txt"
+  },
+  {
+    "id": "wheat_02",
+    "query": "What temperature causes pollen sterility in wheat?",
+    "expected_keywords": ["30", "flowering", "sterility", "pollen"],
+    "expected_source": "wheat_guide.txt"
+  },
+  {
+    "id": "wheat_03",
+    "query": "How do I manage heat stress in wheat during grain filling?",
+    "expected_keywords": ["heat", "grain", "potassium", "HD-3086"],
+    "expected_source": "wheat_guide.txt"
+  },
+  {
+    "id": "wheat_04",
+    "query": "What is yellow rust in wheat and how to treat it?",
+    "expected_keywords": ["rust", "Puccinia", "propiconazole"],
+    "expected_source": "wheat_guide.txt"
+  },
+  {
+    "id": "wheat_05",
+    "query": "When is the crown root initiation stage for wheat irrigation?",
+    "expected_keywords": ["crown root", "20", "25", "tillering"],
+    "expected_source": "wheat_guide.txt"
+  },
+  {
+    "id": "rice_01",
+    "query": "What temperature causes spikelet sterility in rice?",
+    "expected_keywords": ["34", "sterility", "flowering", "spikelet"],
+    "expected_source": "rice_guide.txt"
+  },
+  {
+    "id": "rice_02",
+    "query": "How does alternate wetting and drying work in rice?",
+    "expected_keywords": ["AWD", "wetting", "drying", "15", "20"],
+    "expected_source": "rice_guide.txt"
+  },
+  {
+    "id": "rice_03",
+    "query": "What is rice blast disease and how to control it?",
+    "expected_keywords": ["blast", "Pyricularia", "tricyclazole", "booting"],
+    "expected_source": "rice_guide.txt"
+  },
+  {
+    "id": "rice_04",
+    "query": "When should I drain rice field before harvest?",
+    "expected_keywords": ["drain", "10", "15", "harvest"],
+    "expected_source": "rice_guide.txt"
+  },
+  {
+    "id": "rice_05",
+    "query": "What is brown planthopper and when does it appear?",
+    "expected_keywords": ["planthopper", "hopper burn", "grain filling", "buprofezin"],
+    "expected_source": "rice_guide.txt"
+  },
+  {
+    "id": "tomato_01",
+    "query": "What temperature causes flower drop in tomato?",
+    "expected_keywords": ["35", "flower drop", "abortion", "25"],
+    "expected_source": "tomato_maize_guide.txt"
+  },
+  {
+    "id": "tomato_02",
+    "query": "How do I prevent blossom end rot in tomato?",
+    "expected_keywords": ["blossom end rot", "calcium", "moisture", "consistent"],
+    "expected_source": "tomato_maize_guide.txt"
+  },
+  {
+    "id": "tomato_03",
+    "query": "What is TYLCV and how is it spread?",
+    "expected_keywords": ["TYLCV", "whitefly", "virus", "curl"],
+    "expected_source": "tomato_maize_guide.txt"
+  },
+  {
+    "id": "tomato_04",
+    "query": "How much water does tomato need per day under drip irrigation?",
+    "expected_keywords": ["drip", "liters", "plant", "6", "8"],
+    "expected_source": "tomato_maize_guide.txt"
+  },
+  {
+    "id": "tomato_05",
+    "query": "What causes late blight in tomato and how fast can it spread?",
+    "expected_keywords": ["late blight", "Phytophthora", "10 days", "metalaxyl"],
+    "expected_source": "tomato_maize_guide.txt"
+  },
+  {
+    "id": "maize_01",
+    "query": "What is the most critical irrigation stage for maize?",
+    "expected_keywords": ["tasseling", "silking", "critical", "drought"],
+    "expected_source": "tomato_maize_guide.txt"
+  },
+  {
+    "id": "maize_02",
+    "query": "How does heat stress affect maize pollen viability?",
+    "expected_keywords": ["33", "pollen", "silk", "35"],
+    "expected_source": "tomato_maize_guide.txt"
+  },
+  {
+    "id": "maize_03",
+    "query": "What is fall armyworm and how to treat it in maize?",
+    "expected_keywords": ["fall armyworm", "Spodoptera", "emamectin", "whorl"],
+    "expected_source": "tomato_maize_guide.txt"
+  },
+  {
+    "id": "maize_04",
+    "query": "What causes aflatoxin contamination in maize?",
+    "expected_keywords": ["aflatoxin", "Aspergillus", "drought", "safety"],
+    "expected_source": "tomato_maize_guide.txt"
+  },
+  {
+    "id": "maize_05",
+    "query": "When to harvest maize and what moisture level is needed?",
+    "expected_keywords": ["15", "18", "moisture", "physiological maturity"],
+    "expected_source": "tomato_maize_guide.txt"
+  },
+  {
+    "id": "cotton_01",
+    "query": "What temperature damages cotton flowering?",
+    "expected_keywords": ["40", "anther", "flowering", "cotton"],
+    "expected_source": "cotton_soybean_sugarcane_guide.txt"
+  },
+  {
+    "id": "cotton_02",
+    "query": "What disease is spread by whitefly in cotton?",
+    "expected_keywords": ["Cotton Leaf Curl", "CLCuV", "whitefly", "imidacloprid"],
+    "expected_source": "cotton_soybean_sugarcane_guide.txt"
+  },
+  {
+    "id": "cotton_03",
+    "query": "What pest damages cotton bolls and how to monitor it?",
+    "expected_keywords": ["bollworm", "Pink bollworm", "Helicoverpa", "pheromone"],
+    "expected_source": "cotton_soybean_sugarcane_guide.txt"
+  },
+  {
+    "id": "soybean_01",
+    "query": "Why should I not apply nitrogen fertilizer at soybean germination?",
+    "expected_keywords": ["nitrogen", "nodule", "rhizobium", "fixation"],
+    "expected_source": "cotton_soybean_sugarcane_guide.txt"
+  },
+  {
+    "id": "soybean_02",
+    "query": "What is the critical irrigation stage for soybean pod fill?",
+    "expected_keywords": ["R5", "R6", "pod fill", "oil", "protein"],
+    "expected_source": "cotton_soybean_sugarcane_guide.txt"
+  },
+  {
+    "id": "soybean_03",
+    "query": "What temperature reduces soybean nitrogen fixation?",
+    "expected_keywords": ["27", "nodule", "fixation", "night"],
+    "expected_source": "cotton_soybean_sugarcane_guide.txt"
+  },
+  {
+    "id": "sugarcane_01",
+    "query": "How much water does sugarcane need per season?",
+    "expected_keywords": ["1500", "2500", "irrigation"],
+    "expected_source": "cotton_soybean_sugarcane_guide.txt"
+  },
+  {
+    "id": "sugarcane_02",
+    "query": "What is red rot disease in sugarcane?",
+    "expected_keywords": ["red rot", "Colletotrichum", "stalk", "carbendazim"],
+    "expected_source": "cotton_soybean_sugarcane_guide.txt"
+  },
+  {
+    "id": "sugarcane_03",
+    "query": "When should I reduce irrigation for sugarcane ripening?",
+    "expected_keywords": ["ripening", "sucrose", "reduce", "dilutes"],
+    "expected_source": "cotton_soybean_sugarcane_guide.txt"
+  },
+  {
+    "id": "cross_01",
+    "query": "Which crops are most sensitive to waterlogging?",
+    "expected_keywords": ["waterlogging", "24", "drain"],
+    "expected_source": null
+  }
+]

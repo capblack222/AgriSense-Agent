@@ -1,0 +1,115 @@
+TOMATO CROP MANAGEMENT GUIDE
+==============================
+
+Tomato (Solanum lycopersicum) is a high-value vegetable crop grown extensively across India for both fresh market and processing. It is highly sensitive to temperature extremes and requires careful water and pest management.
+
+IRRIGATION MANAGEMENT
+---------------------
+Tomato has a high water demand throughout its growth cycle. Inconsistent irrigation is the leading cause of physiological disorders like blossom end rot and fruit cracking.
+
+Drip irrigation is strongly recommended at 4-5 liters per plant per day during vegetative stage, increasing to 6-8 liters during fruiting. Under furrow irrigation, apply 40-50mm every 7-10 days.
+
+Critical irrigation timings:
+- At transplanting: water immediately after to establish root contact
+- Flowering stage: never allow soil to dry out - drought at flowering causes blossom drop
+- Fruit set and development: maintain consistent moisture to prevent blossom end rot (caused by calcium deficiency aggravated by drought)
+- Avoid overhead irrigation as wet foliage promotes early blight and late blight disease
+
+When rainfall exceeds 15mm, skip the next scheduled irrigation. Excessive soil wetness promotes Phytophthora root rot.
+
+HEAT STRESS MANAGEMENT
+-----------------------
+Tomato is most productive at 21-29°C. Temperatures above 35°C cause flower drop, reduced fruit set, and poor color development (lycopene synthesis stops above 30°C, causing yellow/orange fruit instead of red).
+
+Above 38°C causes complete flower abortion. Night temperatures above 25°C prevent fruit set.
+
+Heat stress management:
+- Install 50% shade nets during peak summer months
+- Mulch soil with paddy straw or silver reflective mulch to reduce soil temperature
+- Apply foliar calcium and potassium at flower initiation to improve heat tolerance
+- Use heat-tolerant hybrids: Arka Meghali, Sahyadri, or Pusa Hybrid-4
+- Schedule irrigation in the early morning to cool the root zone
+
+GROWTH STAGE GUIDE
+-------------------
+Seedling stage (0-30 days):
+Grow in protected nursery for first 25-30 days before transplanting. Damping off is the biggest seedling threat - treat seed beds with Trichoderma harzianum. Do not overwater. Harden seedlings for 7 days before transplanting by reducing water and exposing to outdoor conditions.
+
+Vegetative stage (transplanting to 40 days):
+Establish root system and canopy. Stake plants when they reach 30 cm. Begin training on trellis wire. Scout for aphids and whiteflies which transmit Tomato Yellow Leaf Curl Virus (TYLCV) - a devastating disease with no cure once infected.
+
+Flowering stage (40-60 days after transplanting):
+Most critical stage for yield. Water stress, heat above 35°C, or night temperatures above 25°C all cause flower drop. Ensure consistent irrigation. Apply boric acid spray (0.2%) to improve pollen viability. Remove side shoots (suckers) regularly in indeterminate varieties.
+
+Fruit development stage (60-90 days after transplanting):
+Fruit sizing and cell expansion. Maintain consistent moisture to prevent cracking when it rains after drought. Apply calcium nitrate (0.5%) foliar spray every 15 days to prevent blossom end rot. Scout for Helicoverpa armigera (fruit borer) - small holes in fruit with frass visible.
+
+Harvest stage (90-120 days after transplanting):
+Harvest at breaker stage (first color break) for distant markets, or at full red for local sale. High humidity at harvest promotes post-harvest botrytis rot. Handle carefully to avoid bruising. Cool storage at 12-15°C extends shelf life.
+
+PEST AND DISEASE MANAGEMENT
+-----------------------------
+Early blight (Alternaria solani): Brown spots with concentric rings on older leaves. Spreads rapidly in warm, humid conditions. Apply mancozeb 75WP at 2.5g/liter water as preventive spray.
+
+Late blight (Phytophthora infestans): Water-soaked grey-green spots on leaves, white sporulation on undersides. The same pathogen that caused the Irish potato famine. Apply metalaxyl-mancozeb at first sign. Can destroy entire crop in 10 days under favorable conditions.
+
+Tomato Yellow Leaf Curl Virus (TYLCV): Curled yellow leaves, stunted plants. Spread by whiteflies. No cure - remove infected plants immediately. Control whitefly vector with imidacloprid or reflective silver mulch.
+
+---
+
+MAIZE CROP MANAGEMENT GUIDE
+==============================
+
+Maize (Zea mays) is a versatile crop used for food, fodder, and industrial purposes. It is the third most important cereal crop in India after rice and wheat.
+
+IRRIGATION MANAGEMENT
+---------------------
+Maize requires 500-800mm of water per season. The crop is highly sensitive to drought during tasseling and silking (flowering) stage.
+
+Critical irrigation stages:
+- Germination: adequate moisture for uniform germination, but avoid waterlogging which causes seed rot
+- Knee-high stage (V6): important for vegetative establishment
+- Tasseling and silking: THE most critical stage. Drought for even 2-3 days during silking causes poor kernel set ("skip rows" in the ear). Irrigate every 5-7 days if no rainfall.
+- Grain filling (R4 dough stage): maintain moisture for kernel weight development
+
+Maize does NOT tolerate waterlogging. Drainage is as important as irrigation. Flooded maize for more than 24-48 hours shows yellowing and significant yield loss.
+
+HEAT STRESS MANAGEMENT
+-----------------------
+Maize grows best at 21-30°C. High temperatures above 33°C during pollen shed reduce pollen viability and kernel set. Temperatures above 35°C cause silk desiccation, preventing fertilization.
+
+Heat stress at tasseling is catastrophic - it can reduce yields by 50% or more.
+
+Management:
+- Choose varieties with synchronous flowering (silk and tassel emerge together)
+- Apply irrigation at tasseling during heat events to cool the canopy
+- Grow heat-tolerant varieties: HQPM-7, Pioneer 30V92, or KPMH-17
+
+GROWTH STAGE GUIDE
+-------------------
+Seedling stage (VE to V3, 0-15 days):
+Critical establishment period. Sow at 5 cm depth for adequate soil contact. Damping off from Pythium can cause poor stands. Seed treatment with thiram + carbendazim protects against soil-borne pathogens.
+
+Vegetative stage (V4 to V12, 15-50 days):
+Rapid leaf production and stalk elongation. Apply nitrogen in two splits - 1/3 at sowing and 2/3 at knee-high stage. Fall armyworm (Spodoptera frugiperda) is a major new threat - check the whorl for ragged leaves and frass.
+
+Tasseling and Silking (VT to R1, 50-65 days):
+Most critical for yield. The tassel (male flower) sheds pollen for 5-8 days, which must land on the silks (female receptors) of the same or neighboring plants. Any stress here directly reduces kernel number. Ensure irrigation and scout for corn earworm in the ear tips.
+
+Grain filling (R2-R4, 65-100 days):
+Milky, blister, and dough stages. Stalk strength is critical to prevent lodging (falling over). Apply potassium fertilizer to improve stalk quality. Northern corn leaf blight appears as long grey-green lesions - apply mancozeb preventively in humid conditions.
+
+Harvest stage (R6, 100-110 days):
+Grain moisture at physiological maturity is 30-35% - too wet for storage. Allow to field dry to 15-18% before harvest. Aflatoxin contamination (by Aspergillus flavus) is a serious safety concern in drought-stressed maize - test grain before consumption.
+
+PEST AND DISEASE MANAGEMENT
+-----------------------------
+Fall armyworm (Spodoptera frugiperda): Invasive pest causing severe damage to maize whorl. Apply emamectin benzoate 5SG (0.4g/liter) into the whorl at first sign of feeding. Biological control with Nomuraea rileyi NPV is effective.
+
+Stem borer (Chilo partellus): Bores into stalk causing dead heart. Apply carbofuran 3G into the whorl at 15 days after germination.
+
+Downy mildew (Peronosclerospora sorghi): White downy growth on leaves, stunted plants. Use metalaxyl-treated seeds and metalaxyl spray preventively.
+
+HUMIDITY AND DISEASE RISK
+--------------------------
+High humidity above 70% promotes gray leaf spot (Cercospora zeae-maydis) and northern corn leaf blight. Both reduce photosynthetic area and yield. Improve airflow through proper plant spacing (75 x 25 cm) and control through mancozeb or propiconazole sprays. Maize ear rots are promoted by high humidity at harvest - harvest and dry promptly.

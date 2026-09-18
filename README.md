@@ -10,10 +10,11 @@ The idea was originally developed as a capstone project during the **Google × K
 
 ### 🛠️ Core Architectural Focus
 
-* **Agentic Weather Intelligence:** Combines real-time Open-Meteo API data mapping with rule-based agronomy heuristics to eliminate LLM hallucination in safety-critical agricultural guidance.
-* **State & Memory Management:** Utilizes a decoupled MongoDB architecture to maintain multi-turn, multi-seasonal farm history (crop growth stages, historical soil tracking) across stateless API sessions.
-* **Production-Grade Guardrails:** Enforces secure JWT-based user isolation, strict FastAPI Pydantic input validation, and asynchronous background worker processing to handle heavy external API payloads without blocking the user thread.
-* **Technology Stack:** FastAPI (Python), MongoDB Atlas, JWT Authentication, Open-Meteo API (free), Gemini 3.1 Flash Lite (REST API).
+* **RAG-Grounded Recommendations:** Retrieves crop-specific agronomic knowledge (irrigation thresholds, pest names, heat limits) from a local vector index at query time, injecting it into every Gemini prompt to ground advice in verified agronomy data rather than model weights alone.
+* **Agentic Weather Intelligence:** Fetches live Open-Meteo forecast data and runs weather fetch + RAG retrieval concurrently via `asyncio.gather`, keeping latency low while gathering full context before LLM reasoning.
+* **State & Memory Management:** Utilises a decoupled MongoDB architecture to maintain multi-turn, multi-seasonal farm history across stateless API sessions.
+* **Production-Grade Guardrails:** JWT-based user isolation, FastAPI Pydantic input validation, and async pipeline design — no blocking calls in the request path.
+* **Technology Stack:** FastAPI, MongoDB Atlas, Gemini 3.1 Flash Lite (REST API), AWS Bedrock Titan Embeddings V2, Chroma, Open-Meteo API.
 
 
 ### ❤️ The "Why" Behind AgriSense
@@ -45,7 +46,7 @@ Crop-specific and **growth-stage-aware** agronomy logic for irrigation, heat str
 JWT-based stateless auth (register + login). Passwords hashed with bcrypt + SHA-256 pre-hashing.
 
 ### 🧭 End-to-End Orchestration
-FastAPI backend coordinates weather fetch → rule engine → Gemini synthesis → MongoDB persistence in a single async pipeline.
+FastAPI backend runs weather fetch and RAG knowledge retrieval **concurrently**, then passes both to Gemini for grounded reasoning, and persists the result to MongoDB — all in a single async pipeline per request.
 
 ---
 
@@ -59,12 +60,17 @@ FastAPI (backend/main.py)
   ├── /agent/history         user decision history (auth required)
   ├── auth.py        JWT register / login
   └── agent.py       Orchestrator
-        ├── weather.py   Open-Meteo API → live forecast
+        ├── weather.py   Open-Meteo API → live forecast           ┐ concurrent
+        ├── rag/         Knowledge retrieval → agronomic context   ├ asyncio.gather
+        │     └── Bedrock Titan V2 → Chroma → top-5 chunks        ┘
         ├── gemini.py    Gemini 3.1 Flash Lite → reasoning + summary (primary)
+        │     └── Prompt = weather + RAG context → grounded advice
         ├── rules.py     Crop + stage rule engine (fallback when Gemini unavailable)
         └── memory.py    MongoDB read/write (per-user history)
 
 MongoDB Atlas          ← persistent farm memory (users + decision history)
+Chroma (local disk)    ← RAG vector index (built once via ingest.py)
+AWS Bedrock            ← Titan Embeddings V2 (query-time embedding)
 ```
 
 ---
@@ -85,9 +91,10 @@ Includes weather fetch, irrigation decisions, fungal/pest alerts, and history su
 | Database | MongoDB Atlas + Motor (async driver) |
 | Auth | python-jose (JWT) + bcrypt + SHA-256 pre-hash |
 | Weather | Open-Meteo API (free, no key) |
-| HTTP client | httpx (Gemini calls) + requests (weather) |
+| RAG | AWS Bedrock Titan Embeddings V2 + Chroma (local) |
+| HTTP client | httpx (Gemini calls + weather) |
 | Container | Docker |
-| Language | Python 3.11+ |
+| Language | Python 3.11–3.14 (3.14 requires `PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python`) |
 
 ---
 
@@ -114,20 +121,35 @@ Includes weather fetch, irrigation decisions, fungal/pest alerts, and history su
 agrisense/
   backend/
     main.py              FastAPI routes + CORS + health check
-    agent.py             Orchestrator (coordinates all modules)
-    rules.py             Crop + stage-aware decision engine
-    weather.py           Open-Meteo API wrapper
-    gemini.py            Gemini LLM synthesis layer
+    agent.py             Orchestrator (weather + RAG + Gemini + memory, concurrent)
+    rules.py             Crop + stage-aware decision engine (Gemini fallback)
+    weather.py           Open-Meteo API wrapper (async httpx)
+    gemini.py            Gemini LLM synthesis layer (REST API, no SDK)
     memory.py            MongoDB-backed FarmMemory
     auth.py              JWT auth + bcrypt password hashing
     database.py          Motor async MongoDB client (singleton)
     models.py            Pydantic request/response models
+    rag/
+      __init__.py        Public API: Retriever
+      chunker.py         Load .txt docs → overlapping chunks (~600 chars)
+      embedder.py        AWS Bedrock Titan Embeddings V2 → 1024-dim vectors
+      vector_store.py    Chroma persistent index (build + query)
+      retriever.py       Clean retrieve(query) → list[dict] interface
+      ingest.py          One-time script: load KB → embed → store Chroma
+      chroma_index/      Auto-created by ingest.py (git-ignored)
   frontend/     
     app.py               Streamlit chat UI
+  knowledge_base/
+    wheat_guide.txt
+    rice_guide.txt
+    tomato_maize_guide.txt
+    cotton_soybean_sugarcane_guide.txt
   tests/ 
-    test_gemini.py       Test for Gemini Model
-    test_rules.py        Test for Hardcoded Rules
-    test_weather.py      Test for the Weather API
+    test_gemini.py       Gemini + validate_crop tests
+    test_rules.py        Rule engine tests
+    test_weather.py      Async weather API tests
+    test_retriever.py    Chunker unit tests + RAG eval harness
+    eval_qa_pairs.json   30 QA pairs for retrieval quality evaluation
 agrisense-agent-code-jupyter-nb.ipynb   original capstone notebook
 Dockerfile
 requirements.txt
