@@ -151,7 +151,7 @@ class FarmAgent:
         # ── Step 2: LLM decision engine (primary path) ───────────────────────
         # Gemini reasons from raw weather data + RAG knowledge context.
         # Returns None if unavailable — we fall back to rules.py below.
-        llm_result = decide_and_advise(
+        llm_result = await decide_and_advise(
             crop            = crop,
             location        = location,
             stage           = stage,

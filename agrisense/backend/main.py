@@ -113,7 +113,7 @@ async def validate_crop_endpoint(body: ValidateCropRequest):
     No auth required: this is a stateless lookup with no user data involved.
     Fails open (is_valid=True) when Gemini is unavailable so the flow is never blocked.
     """
-    return validate_crop(body.crop)
+    return await validate_crop(body.crop)
 
 
 @app.post("/agent/run", response_model=RunResponse, tags=["Agent"])

@@ -64,29 +64,31 @@ Other strict constraints:
 """
 
 
-def _call_gemini(prompt: str) -> str | None:
+async def _call_gemini(prompt: str) -> str | None:
     """
-    Make a direct REST call to the Gemini API.
+    Make a direct REST call to the Gemini API using an async httpx client.
 
     Returns the raw response text on success, None on any failure.
-    Using httpx (already a project dependency) — no extra packages needed.
+    Using httpx.AsyncClient so the event loop is never blocked during the
+    network wait (previously used sync httpx.post — fixed).
     """
     if not _API_KEY:
         return None
 
     try:
-        r = httpx.post(
-            _ENDPOINT,
-            params={"key": _API_KEY},
-            json={
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "temperature":        0,              # deterministic output
-                    "response_mime_type": "application/json",
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                _ENDPOINT,
+                params={"key": _API_KEY},
+                json={
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "temperature":        0,              # deterministic output
+                        "response_mime_type": "application/json",
+                    },
                 },
-            },
-            timeout=30,
-        )
+                timeout=30,
+            )
         r.raise_for_status()
         data = r.json()
         return data["candidates"][0]["content"]["parts"][0]["text"]
@@ -99,7 +101,7 @@ def _call_gemini(prompt: str) -> str | None:
         return None
 
 
-def validate_crop(crop: str) -> dict:
+async def validate_crop(crop: str) -> dict:
     """
     Lightweight crop validity check — called at the crop input step before
     the user fills in location and stage.
@@ -131,7 +133,7 @@ Rules:
     set message to a short, warm 1-sentence reply saying the name wasn't recognised
     as a crop and suggesting the farmer try something like Wheat, Rice, or Tomato."""
 
-    raw = _call_gemini(prompt)
+    raw = await _call_gemini(prompt)
     if raw is None:
         return {"is_valid": True, "message": ""}  # fail open
 
@@ -145,7 +147,7 @@ Rules:
         return {"is_valid": True, "message": ""}
 
 
-def decide_and_advise(
+async def decide_and_advise(
     crop: str,
     location: str,
     stage: str,
@@ -206,7 +208,7 @@ Produce a practical daily farm plan following these guidelines:
 
 {_SCHEMA_RULES}"""
 
-    raw = _call_gemini(prompt)
+    raw = await _call_gemini(prompt)
     if raw is None:
         return None
 
