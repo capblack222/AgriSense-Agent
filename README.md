@@ -13,7 +13,7 @@ The idea was originally developed as a capstone project during the **Google × K
 * **RAG-Grounded Recommendations:** Retrieves crop-specific agronomic knowledge (irrigation thresholds, pest names, heat limits) from a local vector index at query time, injecting it into every Gemini prompt to ground advice in verified agronomy data rather than model weights alone.
 * **Agentic Weather Intelligence:** Fetches live Open-Meteo forecast data and runs weather fetch + RAG retrieval concurrently via `asyncio.gather`, keeping latency low while gathering full context before LLM reasoning.
 * **State & Memory Management:** Utilises a decoupled MongoDB architecture to maintain multi-turn, multi-seasonal farm history across stateless API sessions.
-* **Production-Grade Guardrails:** JWT-based user isolation, FastAPI Pydantic input validation, and async pipeline design — no blocking calls in the request path.
+* **Production-Grade Guardrails:** JWT-based user isolation, per-user and per-IP rate limiting (slowapi), CORS locked to the frontend origin, FastAPI Pydantic input validation, and fully async pipeline — no blocking calls in the request path.
 * **Technology Stack:** FastAPI, MongoDB Atlas, Gemini 3.1 Flash Lite (REST API), AWS Bedrock Titan Embeddings V2, Chroma, Open-Meteo API.
 
 
@@ -92,6 +92,7 @@ Includes weather fetch, irrigation decisions, fungal/pest alerts, and history su
 | Auth | python-jose (JWT) + bcrypt + SHA-256 pre-hash |
 | Weather | Open-Meteo API (free, no key) |
 | RAG | AWS Bedrock Titan Embeddings V2 + Chroma (local) |
+| Rate limiting | slowapi (10/min per user on /agent/run, 5/min per IP on login) |
 | HTTP client | httpx (Gemini calls + weather) |
 | Container | Docker |
 | Language | Python 3.11–3.14 (3.14 requires `PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python`) |

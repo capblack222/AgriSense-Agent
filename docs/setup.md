@@ -36,7 +36,10 @@ Open `.env` and fill in:
 MONGODB_URL=mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/agrisense
 SECRET_KEY=<any long random string>
 GEMINI_API_KEY=<your Gemini API key>
+ALLOWED_ORIGINS=*
 ```
+
+> **Production only:** change `ALLOWED_ORIGINS` to your Streamlit Cloud URL, e.g. `https://your-app.streamlit.app`. Multiple origins are comma-separated.
 
 Generate a secure `SECRET_KEY`:
 ```bash
@@ -109,6 +112,8 @@ docker run -p 8000:8000 --env-file .env agrisense
 | Backend | [Railway](https://railway.app) or [Render](https://render.com) | Set env vars in dashboard; Dockerfile is ready |
 | Frontend | [Streamlit Community Cloud](https://streamlit.io/cloud) | Connect GitHub repo, set `BACKEND_URL` to your deployed API URL |
 | Database | MongoDB Atlas M0 | Already configured via `MONGODB_URL` |
+
+**Before deploying the backend**, set `ALLOWED_ORIGINS` to your Streamlit Cloud URL in the host's environment variable dashboard.
 
 **Before deploying the frontend**, set the `BACKEND_URL` environment variable (or Streamlit secret) to your deployed FastAPI URL — no code change needed.
 

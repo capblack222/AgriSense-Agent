@@ -20,8 +20,12 @@ import os
 # Allow imports from the backend directory itself
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from auth    import register_user, login_user, get_current_user
 from agent   import FarmAgent
@@ -34,6 +38,33 @@ from models  import (
 )
 from database import users_collection, memories_collection
 
+
+# ---------------------------------------------------------------------------
+# Rate limiting
+# ---------------------------------------------------------------------------
+
+def _get_user_or_ip(request: Request) -> str:
+    """
+    Key function for per-user rate limiting on authenticated endpoints.
+    Extracts the user email from the JWT so each user has their own bucket.
+    Falls back to client IP if the token is missing or invalid.
+    """
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            from jose import jwt as jose_jwt
+            from auth import SECRET_KEY, ALGORITHM
+            payload = jose_jwt.decode(auth[7:], SECRET_KEY, algorithms=[ALGORITHM])
+            email = payload.get("sub")
+            if email:
+                return email
+        except Exception:
+            pass
+    return get_remote_address(request)
+
+
+limiter = Limiter(key_func=_get_user_or_ip)
+
 # ---------------------------------------------------------------------------
 # App setup
 # ---------------------------------------------------------------------------
@@ -42,16 +73,30 @@ app = FastAPI(
     description = "AI-powered farm decision agent for smallholder farmers",
     version     = "1.0.0",
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
-# Allows the Streamlit frontend (port 8501) to call this API (port 8000).
-# In production, replace "*" with your actual Streamlit Cloud URL.
+# Origins are controlled via the ALLOWED_ORIGINS env var so no code change
+# is needed between local dev and production.
+#
+# Local dev (.env or shell):   ALLOWED_ORIGINS=*
+# Production (.env or host):   ALLOWED_ORIGINS=https://your-app.streamlit.app
+#
+# Multiple origins: comma-separated, e.g.
+#   ALLOWED_ORIGINS=https://app.streamlit.app,https://your-custom-domain.com
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
+_allow_origins: list[str] = (
+    ["*"] if _raw_origins.strip() == "*"
+    else [o.strip() for o in _raw_origins.split(",") if o.strip()]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins     = ["*"],
+    allow_origins     = _allow_origins,
     allow_credentials = True,
-    allow_methods     = ["*"],
-    allow_headers     = ["*"],
+    allow_methods     = ["GET", "POST"],   # tighten: only methods the API actually uses
+    allow_headers     = ["Authorization", "Content-Type"],
 )
 
 
@@ -91,7 +136,8 @@ async def register(body: RegisterRequest):
 
 
 @app.post("/auth/login", response_model=TokenResponse, tags=["Auth"])
-async def login(body: LoginRequest):
+@limiter.limit("5/minute", key_func=get_remote_address)
+async def login(request: Request, body: LoginRequest):
     """
     Log in with email + password.
     Returns a JWT access token valid for ACCESS_TOKEN_EXPIRE_MINUTES minutes.
@@ -106,7 +152,8 @@ async def login(body: LoginRequest):
 # ---------------------------------------------------------------------------
 
 @app.post("/agent/validate-crop", response_model=ValidateCropResponse, tags=["Agent"])
-async def validate_crop_endpoint(body: ValidateCropRequest):
+@limiter.limit("30/minute", key_func=get_remote_address)
+async def validate_crop_endpoint(request: Request, body: ValidateCropRequest):
     """
     Quick crop name validity check — called by the frontend at the crop input step.
 
@@ -117,7 +164,9 @@ async def validate_crop_endpoint(body: ValidateCropRequest):
 
 
 @app.post("/agent/run", response_model=RunResponse, tags=["Agent"])
+@limiter.limit("10/minute")
 async def run_agent(
+    request:    Request,
     body:       RunRequest,
     user_email: str = Depends(get_current_user),   # JWT verified here
 ):
